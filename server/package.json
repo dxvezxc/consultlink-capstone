@@ -1,0 +1,103 @@
+{
+  "name": "consultation-system-api",
+  "version": "1.0.0",
+  "description": "Subject-Based Consultation Appointment System - Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "NODE_ENV=production node server.js",
+    "dev": "NODE_ENV=development nodemon server.js",
+    "dev:debug": "NODE_ENV=development nodemon --inspect server.js",
+    "dev:client": "cd ../client && npm start",
+    "dev:full": "concurrently --kill-others \"npm run dev\" \"npm run dev:client\"",
+    "test": "NODE_ENV=test jest --verbose --coverage",
+    "test:watch": "NODE_ENV=test jest --watch --verbose",
+    "test:e2e": "NODE_ENV=test jest --testPathPattern=e2e --verbose",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "format": "prettier --write \"**/*.js\"",
+    "format:check": "prettier --check \"**/*.js\"",
+    "security-check": "npm audit",
+    "seed": "node seed.js",
+    "seed:dev": "NODE_ENV=development node seed.js",
+    "seed:test": "NODE_ENV=test node seed.js",
+    "docker:build": "docker build -t consultation-system-api .",
+    "docker:run": "docker run -p 5000:5000 consultation-system-api",
+    "docs:generate": "apidoc -i routes -o docs/api",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "consultation",
+    "appointment",
+    "education",
+    "scheduling",
+    "capstone"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "moment": "^2.30.1",
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.1.5",
+    "morgan": "^1.10.1",
+    "nodemailer": "^7.0.12",
+    "socket.io": "^4.7.4",
+    "validator": "^13.11.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.19.30",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jest": "^27.9.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.8.1",
+    "supertest": "^7.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/tests/",
+      "/coverage/"
+    ],
+    "collectCoverageFrom": [
+      "**/*.js",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/tests/**",
+      "!jest.config.js",
+      "!server.js"
+    ]
+  },
+  "prettier": {
+    "semi": true,
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "printWidth": 80,
+    "tabWidth": 2
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krizztndxve/consultation-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/krizztndxve/consultation-system/issues"
+  },
+  "homepage": "https://github.com/krizztndxve/consultation-system#readme"
+}
