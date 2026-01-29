@@ -3,9 +3,6 @@ node_modules/
 /.pnp
 .pnp.js
 
-# Client folder (has its own git repo)
-client/
-
 # Testing
 /coverage
 
