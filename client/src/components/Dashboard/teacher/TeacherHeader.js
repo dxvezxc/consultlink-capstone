@@ -1,0 +1,91 @@
+import React, { useState } from 'react';
+import { Search, Bell, HelpCircle, Calendar } from 'lucide-react';
+
+const TeacherHeader = ({ user, onLogout }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [notifications] = useState([
+    { id: 1, message: 'New consultation request from John Doe', time: '10 min ago', read: false },
+    { id: 2, message: 'Your availability for tomorrow has been updated', time: '1 hour ago', read: true },
+    { id: 3, message: 'System maintenance scheduled for Sunday', time: '2 hours ago', read: true },
+  ]);
+
+  const unreadNotifications = notifications.filter(n => !n.read).length;
+
+  return (
+    <header className="teacher-header">
+      {/* Search Bar */}
+      <div className="header-search">
+        <Search size={18} className="search-icon" />
+        <input
+          type="text"
+          placeholder="Search students, appointments, or subjects..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="search-input"
+        />
+      </div>
+
+      {/* Header Actions */}
+      <div className="header-actions">
+        {/* Calendar Button */}
+        <button className="action-btn calendar-btn">
+          <Calendar size={20} />
+          <span className="action-label">Calendar</span>
+        </button>
+
+        {/* Help Button */}
+        <button className="action-btn help-btn">
+          <HelpCircle size={20} />
+          <span className="action-label">Help</span>
+        </button>
+
+        {/* Notifications */}
+        <div className="notifications-dropdown">
+          <button className="action-btn notification-btn">
+            <Bell size={20} />
+            {unreadNotifications > 0 && (
+              <span className="notification-badge">{unreadNotifications}</span>
+            )}
+          </button>
+          
+          {/* Notifications Panel */}
+          <div className="notifications-panel">
+            <div className="notifications-header">
+              <h4>Notifications</h4>
+              <button className="mark-all-read">Mark all read</button>
+            </div>
+            <div className="notifications-list">
+              {notifications.map(notification => (
+                <div 
+                  key={notification.id} 
+                  className={`notification-item ${notification.read ? 'read' : 'unread'}`}
+                >
+                  <div className="notification-dot"></div>
+                  <div className="notification-content">
+                    <p className="notification-message">{notification.message}</p>
+                    <span className="notification-time">{notification.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* User Profile */}
+        <div className="user-profile-dropdown">
+          <button className="user-profile-btn">
+            <div className="user-avatar-small">
+              {user?.name?.charAt(0) || 'T'}
+            </div>
+            <div className="user-info">
+              <span className="user-name">{user?.name?.split(' ')[0] || 'Teacher'}</span>
+              <span className="user-role">Teacher</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default TeacherHeader;
