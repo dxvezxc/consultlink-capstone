@@ -1,7 +1,64 @@
 const express = require('express');
 const router = express.Router();
 const Availability = require('../models/Availability');
+const Appointment = require('../models/Appointment');
 const { protect, authorize } = require('../middleware/authMiddleware');
+
+// Helper function to convert time string "HH:MM" to minutes
+const timeToMinutes = (timeStr) => {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+// Helper function to convert minutes to time string "HH:MM"
+const minutesToTime = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+};
+
+// @desc    Get available slots for a teacher on a specific date
+// @route   GET /api/availability/slots
+// @access  Public
+router.get('/slots', async (req, res) => {
+  try {
+    const { teacherId, subjectId, date } = req.query;
+
+    if (!teacherId || !subjectId || !date) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required query parameters: teacherId, subjectId, date'
+      });
+    }
+
+    const selectedDate = new Date(date);
+    const dayOfWeek = selectedDate.getDay();
+
+    // Find availability slots for this teacher on this day
+    const availabilitySlots = await Availability.find({
+      teacher: teacherId,
+      subject: subjectId,
+      dayOfWeek: dayOfWeek,
+      $or: [
+        { validUntil: { $exists: false } },
+        { validUntil: { $gte: selectedDate } }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      date: date,
+      dayOfWeek: dayOfWeek,
+      slots: availabilitySlots
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching available slots',
+      message: error.message
+    });
+  }
+});
 
 // @desc    Get all availability slots for a teacher
 // @route   GET /api/availability/teacher/:teacherId

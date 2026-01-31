@@ -48,20 +48,23 @@
 
 .teacher-name {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 800;
   margin: 0 0 5px 0;
+  color: #fff;
 }
 
 .teacher-role {
-  color: #94a3b8;
+  color: #fff;
   font-size: 14px;
   margin: 0 0 10px 0;
+  font-weight: 600;
 }
 
 .teacher-department {
-  color: #64748b;
+  color: #ccc;
   font-size: 13px;
   margin: 0 0 15px 0;
+  font-weight: 600;
 }
 
 .teacher-stats {
@@ -85,8 +88,9 @@
 
 .stat-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: #e2e8f0;
   margin-top: 4px;
+  font-weight: 600;
 }
 
 /* Navigation */
@@ -102,7 +106,7 @@
   width: 100%;
   background: transparent;
   border: none;
-  color: #cbd5e1;
+  color: #fff;
   padding: 12px 15px;
   border-radius: 8px;
   margin-bottom: 8px;
@@ -110,6 +114,7 @@
   transition: all 0.3s;
   font-size: 15px;
   position: relative;
+  font-weight: 600;
 }
 
 .nav-item:hover {
@@ -908,4 +913,23 @@
     width: 100%;
     justify-content: space-between;
   }
+}
+
+/* ====== CLICKABLE SUMMARY CARDS ====== */
+.summary-card {
+  transition: all 0.3s ease;
+}
+
+.summary-card.clickable {
+  cursor: pointer;
+}
+
+.summary-card.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.card-action:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }

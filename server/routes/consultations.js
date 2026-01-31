@@ -1,6 +1,10 @@
 const express = require('express');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const asyncHandler = require('../utils/asyncHandler');
 const Appointment = require('../models/Appointment');
+const Availability = require('../models/Availability');
+const User = require('../models/User');
+const Subject = require('../models/Subject');
 
 const router = express.Router();
 
@@ -8,40 +12,35 @@ const router = express.Router();
 router.use(protect);
 
 // Get current user's appointments (alias for GET /)
-router.get('/my', async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const userRole = req.user.role;
+router.get('/my', asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const userRole = req.user.role;
 
-    console.log('Fetching appointments for user:', {
-      userId,
-      userRole
-    });
+  console.log('Fetching appointments for user:', {
+    userId,
+    userRole
+  });
 
-    let query = {};
-    if (userRole === 'student') {
-      query = { student: userId };
-    } else if (userRole === 'teacher') {
-      query = { teacher: userId };
-    }
-
-    const appointments = await Appointment.find(query)
-      .populate('student', 'name email')
-      .populate('teacher', 'name email')
-      .populate('subject', 'name code')
-      .sort({ dateTime: -1 });
-
-    console.log('Found appointments:', appointments.length);
-    if (appointments.length > 0) {
-      console.log('First appointment:', appointments[0]);
-    }
-
-    res.status(200).json(appointments);
-  } catch (err) {
-    console.error('Get my appointments error:', err.message);
-    res.status(500).json({ success: false, error: 'Error fetching appointments', message: err.message });
+  let query = {};
+  if (userRole === 'student') {
+    query = { student: userId };
+  } else if (userRole === 'teacher') {
+    query = { teacher: userId };
   }
-});
+
+  const appointments = await Appointment.find(query)
+    .populate('student', 'name email')
+    .populate('teacher', 'name email')
+    .populate('subject', 'name code')
+    .sort({ dateTime: -1 });
+
+  console.log('Found appointments:', appointments.length);
+  if (appointments.length > 0) {
+    console.log('First appointment:', appointments[0]);
+  }
+
+  res.status(200).json(appointments);
+}));
 
 // Get all appointments for a user
 router.get('/', async (req, res) => {
@@ -128,6 +127,60 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Helper function to validate if appointment time is within teacher's availability
+const validateAppointmentTime = async (teacherId, subjectId, appointmentDateTime) => {
+  const appointmentDate = new Date(appointmentDateTime);
+  const dayOfWeek = appointmentDate.getDay();
+  const hours = String(appointmentDate.getHours()).padStart(2, '0');
+  const minutes = String(appointmentDate.getMinutes()).padStart(2, '0');
+  const appointmentTime = `${hours}:${minutes}`;
+
+  // Find availability slot for this teacher on this day
+  const availabilitySlot = await Availability.findOne({
+    teacher: teacherId,
+    subject: subjectId,
+    dayOfWeek: dayOfWeek,
+    $or: [
+      { validUntil: { $exists: false } },
+      { validUntil: { $gte: appointmentDate } }
+    ]
+  });
+
+  if (!availabilitySlot) {
+    return {
+      valid: false,
+      message: `Teacher has no availability set for ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]}`
+    };
+  }
+
+  // Check if appointment time falls within the slot's time range
+  if (appointmentTime < availabilitySlot.startTime || appointmentTime >= availabilitySlot.endTime) {
+    return {
+      valid: false,
+      message: `Appointment time must be between ${availabilitySlot.startTime} and ${availabilitySlot.endTime}`
+    };
+  }
+
+  // Check for existing appointments in the same slot
+  const existingAppointment = await Appointment.findOne({
+    teacher: teacherId,
+    subject: subjectId,
+    dateTime: {
+      $gte: new Date(appointmentDateTime),
+      $lt: new Date(new Date(appointmentDateTime).getTime() + availabilitySlot.slotDuration * 60000)
+    }
+  });
+
+  if (existingAppointment) {
+    return {
+      valid: false,
+      message: 'This time slot is already booked'
+    };
+  }
+
+  return { valid: true };
+};
+
 // Create appointment (student)
 router.post('/', async (req, res) => {
   try {
@@ -144,6 +197,24 @@ router.post('/', async (req, res) => {
     // Validate required fields
     if (!teacherId || !subjectId || !dateTime) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    // Check if teacher exists
+    const teacher = await User.findById(teacherId);
+    if (!teacher || teacher.role !== 'teacher') {
+      return res.status(404).json({ success: false, error: 'Teacher not found' });
+    }
+
+    // Check if subject exists
+    const subject = await Subject.findById(subjectId);
+    if (!subject) {
+      return res.status(404).json({ success: false, error: 'Subject not found' });
+    }
+
+    // Validate appointment time against teacher availability
+    const validationResult = await validateAppointmentTime(teacherId, subjectId, dateTime);
+    if (!validationResult.valid) {
+      return res.status(400).json({ success: false, error: validationResult.message });
     }
 
     const appointment = new Appointment({
@@ -163,8 +234,6 @@ router.post('/', async (req, res) => {
       { path: 'teacher', select: 'name email' },
       { path: 'subject', select: 'name' }
     ]);
-    await appointment.populate('teacher', 'name email');
-    await appointment.populate('subject', 'name');
 
     console.log('Appointment populated:', appointment);
 

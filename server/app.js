@@ -10,6 +10,8 @@ const rateLimit = require('express-rate-limit');
 // Import custom middleware
 const errorHandler = require('./middleware/errorMiddleware');
 const notFound = require('./middleware/notFoundMiddleware');
+const requestTimeout = require('./middleware/timeoutMiddleware');
+const connectDB = require('./config/db');
 
 // Load environment variables
 dotenv.config();
@@ -70,46 +72,26 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// MongoDB connection with improved error handling
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-    
-    // Connection event listeners
-    mongoose.connection.on('error', err => {
-      console.error(`MongoDB connection error: ${err}`);
-    });
-    
-    mongoose.connection.on('disconnected', () => {
-      console.log('MongoDB disconnected');
-    });
-    
-    process.on('SIGINT', async () => {
-      await mongoose.connection.close();
-      console.log('MongoDB connection closed through app termination');
-      process.exit(0);
-    });
-    
-  } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
-  }
-};
+// Request timeout middleware (30 seconds)
+app.use(requestTimeout(30000));
 
 // Connect to database
 connectDB();
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
+  const mongoHealth = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  const statusCode = mongoHealth === 'connected' ? 200 : 503;
+  
+  res.status(statusCode).json({ 
+    status: mongoHealth === 'connected' ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    database: mongoHealth,
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+    }
   });
 });
 
@@ -123,6 +105,17 @@ app.use('/api/notifications', require('./routes/notifications')); // NEW: Notifi
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/consultations', require('./routes/consultations')); // NEW: Consultation routes
 app.use('/api/messages', require('./routes/messages')); // NEW: Message/Chat routes
+
+// Request validation middleware to catch missing body/params
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid JSON in request body'
+    });
+  }
+  next(err);
+});
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

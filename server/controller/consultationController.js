@@ -2,8 +2,63 @@
 // Handles consultation/appointment operations
 
 const Appointment = require('../models/Appointment');
+const Availability = require('../models/Availability');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
+
+// Helper function to validate if appointment time is within teacher's availability
+const validateAppointmentTime = async (teacherId, subjectId, appointmentDateTime) => {
+  const appointmentDate = new Date(appointmentDateTime);
+  const dayOfWeek = appointmentDate.getDay();
+  const hours = String(appointmentDate.getHours()).padStart(2, '0');
+  const minutes = String(appointmentDate.getMinutes()).padStart(2, '0');
+  const appointmentTime = `${hours}:${minutes}`;
+
+  // Find availability slot for this teacher on this day
+  const availabilitySlot = await Availability.findOne({
+    teacher: teacherId,
+    subject: subjectId,
+    dayOfWeek: dayOfWeek,
+    $or: [
+      { validUntil: { $exists: false } },
+      { validUntil: { $gte: appointmentDate } }
+    ]
+  });
+
+  if (!availabilitySlot) {
+    return {
+      valid: false,
+      message: `Teacher has no availability set for ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]}`
+    };
+  }
+
+  // Check if appointment time falls within the slot's time range
+  if (appointmentTime < availabilitySlot.startTime || appointmentTime >= availabilitySlot.endTime) {
+    return {
+      valid: false,
+      message: `Appointment time must be between ${availabilitySlot.startTime} and ${availabilitySlot.endTime}`
+    };
+  }
+
+  // Check for existing appointments in the same slot
+  const existingAppointment = await Appointment.findOne({
+    teacher: teacherId,
+    subject: subjectId,
+    dateTime: {
+      $gte: new Date(appointmentDateTime),
+      $lt: new Date(new Date(appointmentDateTime).getTime() + availabilitySlot.slotDuration * 60000)
+    }
+  });
+
+  if (existingAppointment) {
+    return {
+      valid: false,
+      message: 'This time slot is already booked'
+    };
+  }
+
+  return { valid: true };
+};
 
 // Create consultation (now using Appointment model)
 exports.createConsultation = async (req, res) => {
@@ -33,6 +88,15 @@ exports.createConsultation = async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'Subject not found'
+      });
+    }
+
+    // Validate appointment time against teacher availability
+    const validationResult = await validateAppointmentTime(teacherId, subjectId, dateTime);
+    if (!validationResult.valid) {
+      return res.status(400).json({
+        success: false,
+        error: validationResult.message
       });
     }
 

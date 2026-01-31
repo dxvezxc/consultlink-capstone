@@ -12,23 +12,29 @@ const server = app.listen(PORT, () => {
   `);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error(`Unhandled Rejection: ${err.message}`);
-  console.error(err.stack);
-  
-  // Close server & exit process
-  server.close(() => {
-    console.log('Server closed due to unhandled rejection');
-    process.exit(1);
-  });
+// Handle unhandled promise rejections (log but don't crash)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error(`⚠️  Unhandled Rejection at:`, promise);
+  console.error(`⚠️  Reason:`, reason);
+  if (reason && reason.stack) {
+    console.error(reason.stack);
+  }
+  // Log but continue running - the request already has error handling
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error(`Uncaught Exception: ${err.message}`);
+  console.error(`❌ Uncaught Exception: ${err.message}`);
   console.error(err.stack);
-  process.exit(1);
+  
+  // In production, you might want to restart the process
+  // For now, we'll log and attempt to continue
+  if (process.env.NODE_ENV === 'production') {
+    server.close(() => {
+      console.log('Server closed due to uncaught exception');
+      process.exit(1);
+    });
+  }
 });
 
 // Graceful shutdown

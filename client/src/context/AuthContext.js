@@ -46,11 +46,11 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
       
-      console.log('Login attempt:', { identifier, role });
+      console.log('AuthContext: Login attempt:', { identifier, role });
       const response = await authAPI.login({ identifier, password, role });
-      console.log('Login response:', response);
+      console.log('AuthContext: Login response success:', response);
       
-      if (response.success) {
+      if (response && response.success) {
         // Store token and user data
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
@@ -58,26 +58,57 @@ export const AuthProvider = ({ children }) => {
         // Set user state
         setUser(response.user);
         
-        console.log('Login successful, user set:', response.user);
+        console.log('AuthContext: Login successful, user set:', response.user);
         return { success: true, data: response };
       } else {
-        const errorMsg = response.error || 'Login failed';
-        console.error('Login failed:', errorMsg);
+        // API returned an unsuccessful response
+        const errorMsg = response?.error || response?.message || 'Login failed. Invalid credentials.';
+        console.error('AuthContext: Login response failure:', { response, errorMsg });
         setError(errorMsg);
         return { success: false, error: errorMsg };
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('AuthContext: ===== LOGIN ERROR CAUGHT =====');
+      console.error('AuthContext: err object:', err);
+      console.error('AuthContext: err type:', typeof err);
+      console.error('AuthContext: err.message:', err?.message);
+      console.error('AuthContext: err.status:', err?.status);
+      console.error('AuthContext: err.data:', err?.data);
+      console.error('AuthContext: ===== END ERROR =====');
       
       // Handle both error object formats:
       // 1. From axios interceptor: {status, message, data}
       // 2. From API: {error: string, message: string}
-      const errorMessage = 
-        err.message || 
-        err.data?.error || 
-        err.data?.message || 
-        'Login failed. Please try again.';
+      // 3. Network error: Error object
+      let errorMessage = 'Login failed. Please try again.';
       
+      // Try to extract error message from various sources
+      if (err?.message && typeof err.message === 'string') {
+        console.error('AuthContext: Using err.message:', err.message);
+        // Check if message is one of our custom messages
+        if (err.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else if (err.message.includes('401') || err.message.includes('unauthorized')) {
+          errorMessage = 'Invalid username, email, or password.';
+        } else {
+          // Use the message as-is
+          errorMessage = err.message;
+        }
+      } else if (err?.data?.error && typeof err.data.error === 'string') {
+        console.error('AuthContext: Using err.data.error:', err.data.error);
+        errorMessage = err.data.error;
+      } else if (err?.data?.message && typeof err.data.message === 'string') {
+        console.error('AuthContext: Using err.data.message:', err.data.message);
+        errorMessage = err.data.message;
+      } else if (typeof err === 'string') {
+        console.error('AuthContext: err is string:', err);
+        errorMessage = err;
+      } else {
+        console.error('AuthContext: Could not extract error message from err object');
+      }
+      
+      console.error('AuthContext: Final error message:', errorMessage);
+      console.error('AuthContext: Calling setError with:', errorMessage);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {

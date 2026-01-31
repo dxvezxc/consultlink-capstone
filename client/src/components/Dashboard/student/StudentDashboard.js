@@ -11,6 +11,8 @@ import StudentHeader from './StudentHeader';
 import StudentSummaryCards from './StudentSummaryCards';
 import StudentAppointments from './StudentAppointments';
 import BookingForm from '../../Booking/BookingForm';
+import AppointmentDetailModal from './AppointmentDetailModal';
+import ChatBox from '../../Chat/ChatBox';
 
 import '../../../styles/studentDashboard.css';
 
@@ -24,13 +26,19 @@ const StudentDashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedConsultant, setSelectedConsultant] = useState(null);
+  const [teachersForSubject, setTeachersForSubject] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [chatAppointment, setChatAppointment] = useState(null);
   const [stats, setStats] = useState({
       pending: 0,
       approved: 0,
       completed: 0,
-      cancelled: 0
+      cancelled: 0,
+      totalHours: 0,
+      avgTeacherRating: 0,
+      reviewCount: 0
     });
 
     // Load data on component mount
@@ -138,23 +146,49 @@ const StudentDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Start booking process
-  const startBooking = (subject) => {
+  // Start booking process - show subject selection first
+  const startBooking = () => {
+    setSelectedSubject(null);
+    setSelectedConsultant(null);
+    setTeachersForSubject([]);
+    setView('book');
+  };
+
+  // Select subject and fetch teachers for that subject
+  const selectSubject = (subject) => {
     setSelectedSubject(subject);
     setSelectedConsultant(null);
-    setView('book');
+    
+    // Filter teachers who teach this subject
+    const teachersForThisSubject = teachers.filter(teacher => 
+      teacher.subjects && teacher.subjects.some(s => 
+        s._id === subject._id || s === subject._id
+      )
+    );
+    
+    console.log('Teachers for subject', subject.name, ':', teachersForThisSubject);
+    setTeachersForSubject(teachersForThisSubject);
   };
 
   // Select consultant (teacher) for booking
   const selectConsultant = (consultant) => {
     setSelectedConsultant(consultant);
+    // Move directly to booking form
+    setView('bookForm');
   };
 
   // Cancel booking and return to dashboard
   const cancelBooking = () => {
     setSelectedSubject(null);
     setSelectedConsultant(null);
+    setTeachersForSubject([]);
     setView('dashboard');
+  };
+
+  // Go back from consultant selection to subject selection
+  const backToSubjects = () => {
+    setSelectedSubject(null);
+    setTeachersForSubject([]);
   };
 
   // Handle successful booking
@@ -231,6 +265,85 @@ const StudentDashboard = () => {
     navigate('/login');
   };
 
+  // Handle card click to view details or navigate
+  const handleCardClick = (link, cardId) => {
+    if (link === 'appointments') {
+      setView('appointments');
+    }
+  };
+
+  // Handle appointment click to show modal
+  const handleAppointmentClick = (appointment) => {
+    setSelectedAppointment(appointment);
+  };
+
+  // Handle close modal
+  const handleCloseModal = () => {
+    setSelectedAppointment(null);
+  };
+
+  // Handle message teacher
+  const handleMessageTeacher = (appointment) => {
+    console.log('Opening chat for appointment:', appointment);
+    setChatAppointment(appointment);
+    handleCloseModal();
+  };
+
+  // Handle cancel appointment
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await appointmentsAPI.cancelAppointment(appointmentId);
+      console.log('Appointment cancelled:', response);
+      
+      // Refresh appointments
+      const appointmentsData = await appointmentsAPI.getStudentAppointments();
+      setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
+      
+      // Update stats
+      const stats = {
+        pending: 0,
+        approved: 0,
+        completed: 0,
+        cancelled: 0
+      };
+
+      if (appointmentsData && Array.isArray(appointmentsData)) {
+        appointmentsData.forEach(appointment => {
+          switch (appointment.status) {
+            case 'pending':
+              stats.pending++;
+              break;
+            case 'confirmed':
+              stats.approved++;
+              break;
+            case 'completed':
+              stats.completed++;
+              break;
+            case 'cancelled':
+              stats.cancelled++;
+              break;
+            default:
+              break;
+          }
+        });
+      }
+      setStats(prev => ({ ...prev, ...stats }));
+      
+      handleCloseModal();
+      alert('Appointment cancelled successfully!');
+    } catch (err) {
+      console.error('Error cancelling appointment:', err);
+      alert('Failed to cancel appointment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Render loading state
   if (loading && view === 'dashboard') {
     return (
@@ -271,27 +384,77 @@ const StudentDashboard = () => {
         {/* Main Content Views */}
         {view === 'dashboard' && (
           <>
-            <StudentSummaryCards stats={stats} />
+            <StudentSummaryCards 
+              stats={stats} 
+              onCardClick={handleCardClick}
+            />
             <StudentAppointments 
               onBook={startBooking} 
               user={user}
+              appointments={appointments}
+              onAppointmentClick={handleAppointmentClick}
             />
           </>
         )}
 
-        {/* Subject Selection View */}
+        {/* Subject Selection View - Step 1 */}
+        {view === 'book' && !selectedSubject && (
+          <div className="subject-selection-view">
+            <div className="selection-header">
+              <h2>Step 1: Select a Subject</h2>
+              <p className="selection-subtitle">
+                Choose which subject you need help with
+              </p>
+            </div>
+            
+            {subjects && subjects.length > 0 ? (
+              <div className="subject-grid">
+                {subjects.map((subject) => (
+                  <div
+                    key={subject._id}
+                    className="subject-card-clickable"
+                    onClick={() => selectSubject(subject)}
+                  >
+                    <div className="subject-icon">📚</div>
+                    <div className="subject-info">
+                      <h4 className="subject-name">{subject.name}</h4>
+                      <p className="subject-description">
+                        {subject.description || 'Click to select'}
+                      </p>
+                    </div>
+                    <div className="subject-arrow">→</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-subjects">
+                <div className="no-subjects-icon">📖</div>
+                <h3>No subjects available</h3>
+                <p>Please check back later.</p>
+              </div>
+            )}
+            
+            <div className="selection-footer">
+              <button className="cancel-btn" onClick={cancelBooking}>
+                ← Back to Dashboard
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Consultant Selection View - Step 2 */}
         {view === 'book' && selectedSubject && !selectedConsultant && (
           <div className="subject-consultant-selection">
             <div className="selection-header">
-              <h2>Select a Consultant</h2>
+              <h2>Step 2: Select a Consultant</h2>
               <p className="selection-subtitle">
                 Choose a teacher for <strong>{selectedSubject.name}</strong>
               </p>
             </div>
             
-            {selectedSubject.consultants?.length > 0 ? (
+            {teachersForSubject && teachersForSubject.length > 0 ? (
               <div className="consultant-grid">
-                {selectedSubject.consultants.map((consultant) => (
+                {teachersForSubject.map((consultant) => (
                   <div
                     key={consultant._id}
                     className="consultant-card"
@@ -306,7 +469,7 @@ const StudentDashboard = () => {
                       </h4>
                       <p className="consultant-role">{consultant.role}</p>
                       <p className="consultant-subjects">
-                        {consultant.subjects?.join(', ') || 'General'}
+                        {consultant.subjects?.map(s => typeof s === 'string' ? s : s.name).join(', ') || 'General'}
                       </p>
                       <div className="consultant-rating">
                         <span className="rating-stars">★★★★☆</span>
@@ -324,27 +487,33 @@ const StudentDashboard = () => {
                 <div className="no-consultants-icon">👨‍🏫</div>
                 <h3>No consultants available</h3>
                 <p>There are no teachers available for {selectedSubject.name} at the moment.</p>
-                <button className="cancel-btn" onClick={cancelBooking}>
-                  Back to Subjects
+                <button className="cancel-btn" onClick={backToSubjects}>
+                  ← Back to Subjects
                 </button>
               </div>
             )}
             
             <div className="selection-footer">
+              <button className="cancel-btn" onClick={backToSubjects}>
+                ← Back to Subjects
+              </button>
               <button className="cancel-btn" onClick={cancelBooking}>
-                ← Back to Dashboard
+                Back to Dashboard
               </button>
             </div>
           </div>
         )}
 
-        {/* Booking Form View */}
-        {view === 'book' && selectedSubject && selectedConsultant && (
+        {/* Booking Form View - Step 3 */}
+        {view === 'bookForm' && selectedSubject && selectedConsultant && (
           <div className="booking-container">
             <BookingForm
               subject={selectedSubject}
               consultant={selectedConsultant}
-              onBack={() => setSelectedConsultant(null)}
+              onBack={() => {
+                setSelectedConsultant(null);
+                setView('book');
+              }}
               onCancel={cancelBooking}
               onSuccess={handleBookingSuccess}
               user={user}
@@ -368,6 +537,7 @@ const StudentDashboard = () => {
               onBook={startBooking}
               appointments={appointments}
               user={user}
+              onAppointmentClick={handleAppointmentClick}
             />
           </div>
         )}
@@ -572,6 +742,25 @@ const StudentDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Appointment Detail Modal */}
+      <AppointmentDetailModal
+        appointment={selectedAppointment}
+        onClose={handleCloseModal}
+        onMessage={handleMessageTeacher}
+        onCancel={handleCancelAppointment}
+      />
+
+      {/* Chat Box */}
+      {chatAppointment && (
+        <div className="chatbox-overlay">
+          <ChatBox
+            appointment={chatAppointment}
+            otherUser={chatAppointment.teacher}
+            onClose={() => setChatAppointment(null)}
+          />
+        </div>
+      )}
     </div>
   );
 };

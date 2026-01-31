@@ -133,6 +133,13 @@ const TeacherDashboard = () => {
     }
   };
 
+  // Handle card click to navigate
+  const handleCardClick = (link, cardId) => {
+    if (link) {
+      setView(link);
+    }
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -173,7 +180,10 @@ const TeacherDashboard = () => {
           {view === 'dashboard' && (
             <>
               {/* Dashboard Overview */}
-              <TeacherSummaryCards stats={stats} />
+              <TeacherSummaryCards 
+                stats={stats}
+                onCardClick={handleCardClick}
+              />
               
               <div className="dashboard-grid">
                 <div className="grid-column">

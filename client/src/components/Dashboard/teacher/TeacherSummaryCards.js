@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle, Users, TrendingUp, Calendar } from 'lucide-react';
 
-const TeacherSummaryCards = ({ stats }) => {
+const TeacherSummaryCards = ({ stats, onCardClick }) => {
   const cards = [
     {
       id: 'pending',
@@ -65,13 +65,27 @@ const TeacherSummaryCards = ({ stats }) => {
     }
   ];
 
+  const handleCardClick = (cardId, cardLink) => {
+    if (onCardClick && cardLink) {
+      onCardClick(cardLink, cardId);
+    }
+  };
+
   return (
     <div className="teacher-summary-cards">
       {cards.map((card) => (
         <div 
           key={card.id} 
-          className="summary-card"
+          className={`summary-card ${card.link ? 'clickable' : ''}`}
           style={{ borderLeft: `4px solid ${card.color}` }}
+          onClick={() => handleCardClick(card.id, card.link)}
+          role={card.link ? 'button' : 'status'}
+          tabIndex={card.link ? 0 : -1}
+          onKeyPress={(e) => {
+            if (card.link && (e.key === 'Enter' || e.key === ' ')) {
+              handleCardClick(card.id, card.link);
+            }
+          }}
         >
           <div className="card-content">
             <div className="card-icon" style={{ backgroundColor: card.bgColor, color: card.color }}>
@@ -87,7 +101,13 @@ const TeacherSummaryCards = ({ stats }) => {
               {card.change}
             </span>
             {card.link && (
-              <button className="card-action">
+              <button 
+                className="card-action"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCardClick(card.id, card.link);
+                }}
+              >
                 View Details →
               </button>
             )}

@@ -8,7 +8,6 @@ const TeacherSidebar = ({ view, setView, user, onLogout }) => {
     { id: 'availability', label: 'Availability', icon: <Clock size={20} /> },
     { id: 'requests', label: 'Appointment Requests', icon: <Bell size={20} />, badge: 3 },
     { id: 'subjects', label: 'My Subjects', icon: <BookOpen size={20} /> },
-    { id: 'students', label: 'My Students', icon: <Users size={20} /> },
     { id: 'profile', label: 'Profile', icon: <User size={20} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
   ];

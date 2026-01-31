@@ -1,6 +1,7 @@
 const express = require('express'); 
 const Subject = require('../models/Subject');
 const User = require('../models/User');
+const asyncHandler = require('../utils/asyncHandler');
 const router = express.Router();
 
 // Debug endpoint - shows all teachers and their subjects

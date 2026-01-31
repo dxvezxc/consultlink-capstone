@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle, AlertCircle } from 'lucide-react';
 import consultationsAPI from '../../../api/consultations';
+import { availabilityAPI } from '../../../api/availability';
 import '../../../styles/teacherSchedule.css';
 
 const TeacherSchedule = () => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [viewMode, setViewMode] = useState('week');
   const [appointments, setAppointments] = useState([]);
+  const [availability, setAvailability] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -20,25 +23,46 @@ const TeacherSchedule = () => {
       dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
       dayNumber: date.getDate(),
       month: date.toLocaleDateString('en-US', { month: 'short' }),
-      fullDate: date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      fullDate: date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+      dayOfWeek: date.getDay() // 0-6, Sunday-Saturday
     };
   });
 
-  // Load real appointments
+  // Load appointments and availability
   useEffect(() => {
-    const loadAppointments = async () => {
+    const loadData = async () => {
       try {
-        const response = await consultationsAPI.getUserConsultations({ status: '' });
-        const data = response.consultations || response.data || [];
-        setAppointments(data);
+        setLoading(true);
+        
+        // Load appointments for this teacher
+        const appointmentsRes = await consultationsAPI.getUserConsultations({});
+        const appointmentsData = Array.isArray(appointmentsRes)
+          ? appointmentsRes
+          : (appointmentsRes?.consultations || []);
+        
+        console.log('Loaded appointments:', appointmentsData);
+        setAppointments(appointmentsData);
+        
+        // Load availability
+        const availabilityRes = await availabilityAPI.getMyAvailability();
+        const availabilityData = Array.isArray(availabilityRes)
+          ? availabilityRes
+          : (availabilityRes?.data || []);
+        
+        console.log('Loaded availability:', availabilityData);
+        setAvailability(availabilityData);
+        
       } catch (error) {
-        console.error('Error loading appointments:', error);
+        console.error('Error loading schedule data:', error);
         setAppointments([]);
+        setAvailability([]);
+      } finally {
+        setLoading(false);
       }
     };
     
-    loadAppointments();
-  }, []);
+    loadData();
+  }, [currentWeek]);
 
   const getAppointmentsForDay = (day) => {
     return appointments
@@ -47,6 +71,17 @@ const TeacherSchedule = () => {
         return appDate === day.date;
       })
       .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+  };
+
+  // Get availability slots for a specific day
+  const getAvailabilityForDay = (day) => {
+    return availability.filter(slot => slot.dayOfWeek === day.dayOfWeek);
+  };
+
+  // Format time from Date object
+  const formatTime = (dateTime) => {
+    const date = new Date(dateTime);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const handlePreviousWeek = () => {
@@ -105,7 +140,9 @@ const TeacherSchedule = () => {
             <CheckCircle size={20} />
           </div>
           <div className="stat-content">
-            <span className="stat-number">12</span>
+            <span className="stat-number">
+              {appointments.filter(a => a.status === 'confirmed').length}
+            </span>
             <span className="stat-text">This Week</span>
           </div>
         </div>
@@ -114,7 +151,9 @@ const TeacherSchedule = () => {
             <AlertCircle size={20} />
           </div>
           <div className="stat-content">
-            <span className="stat-number">3</span>
+            <span className="stat-number">
+              {appointments.filter(a => a.status === 'pending').length}
+            </span>
             <span className="stat-text">Pending</span>
           </div>
         </div>
@@ -123,8 +162,17 @@ const TeacherSchedule = () => {
             <Clock size={20} />
           </div>
           <div className="stat-content">
-            <span className="stat-number">18h 30m</span>
-            <span className="stat-text">Total Hours</span>
+            <span className="stat-number">
+              {availability.length > 0 
+                ? `${availability.reduce((sum, slot) => {
+                    const [startH] = slot.startTime.split(':').map(Number);
+                    const [endH] = slot.endTime.split(':').map(Number);
+                    return sum + (endH - startH);
+                  }, 0)}h`
+                : '0h'
+              }
+            </span>
+            <span className="stat-text">Weekly Hours</span>
           </div>
         </div>
       </div>
@@ -153,35 +201,39 @@ const TeacherSchedule = () => {
               <div className="day-appointments">
                 {dayAppointments.length > 0 ? (
                   dayAppointments.map(app => (
-                    <div key={app.id} className={`appointment-item ${app.type}`}>
+                    <div key={app._id} className={`appointment-item ${app.status}`}>
                       <div className="appointment-time-box">
-                        <span className="time">{app.time}</span>
-                        <span className="duration">{app.duration}m</span>
+                        <span className="time">{formatTime(app.dateTime)}</span>
+                        <span className="duration">30m</span>
                       </div>
                       
                       <div className="appointment-details">
-                        <h4 className="subject-name">{app.subject}</h4>
+                        <h4 className="subject-name">
+                          {app.subject?.name || 'Subject'}
+                        </h4>
                         <div className="detail-row">
                           <User size={14} />
-                          <span>{app.student}</span>
+                          <span>{app.student?.name || 'Student'}</span>
                         </div>
                         <div className="detail-row">
-                          <MapPin size={14} />
-                          <span>{app.location}</span>
+                          <AlertCircle size={14} />
+                          <span className={`status-badge ${app.status}`}>
+                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                          </span>
                         </div>
                       </div>
                       
                       <div className="appointment-actions">
-                        {app.type === 'confirmed' && (
+                        {app.status === 'confirmed' && (
                           <button className="action-btn join-btn">
                             <Video size={14} />
                             Join
                           </button>
                         )}
-                        {app.type === 'pending' && (
+                        {app.status === 'pending' && (
                           <button className="action-btn pending-btn">
                             <AlertCircle size={14} />
-                            Pending
+                            Review
                           </button>
                         )}
                       </div>
@@ -189,8 +241,20 @@ const TeacherSchedule = () => {
                   ))
                 ) : (
                   <div className="no-appointments">
-                    <Calendar size={32} />
-                    <p>No appointments</p>
+                    <div className="no-appointments-content">
+                      <Calendar size={32} />
+                      <p>No appointments</p>
+                      {getAvailabilityForDay(day).length > 0 && (
+                        <div className="availability-hint">
+                          <p className="hint-text">Available:</p>
+                          {getAvailabilityForDay(day).map((slot, idx) => (
+                            <span key={idx} className="availability-slot">
+                              {slot.startTime} - {slot.endTime}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

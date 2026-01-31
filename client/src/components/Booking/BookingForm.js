@@ -1,11 +1,15 @@
 // client/src/components/Booking/BookingForm.js
 import React, { useState } from 'react';
 import API from '../../api/axios';
-import '../../styles/studentDashboard.css';
+import TimeSlotPicker from './TimeSlotPicker';
+import '../../styles/booking.css';
+import '../../styles/time-slot-picker.css';
 
 const BookingForm = ({ subject, teacher, consultant, onBack, onSuccess }) => {
-  const [dateTime, setDateTime] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Use 'consultant' if 'teacher' is not provided
   const teacherData = teacher || consultant;
@@ -25,19 +29,39 @@ const BookingForm = ({ subject, teacher, consultant, onBack, onSuccess }) => {
     );
   }
 
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
+    setSelectedTime(''); // Reset time when date changes
+    setError('');
+  };
+
+  const handleTimeSelect = (time) => {
+    setSelectedTime(time);
+    setError('');
+  };
+
   const handleBook = async () => {
-    if (!dateTime) {
-      alert('Please select date and time');
+    if (!selectedDate || !selectedTime) {
+      setError('Please select both date and time');
       return;
     }
 
     try {
       setLoading(true);
-      
+      setError('');
+
+      // Combine date and time into ISO datetime string
+      const dateObj = new Date(selectedDate);
+      const [hours, minutes] = selectedTime.split(':');
+      dateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      const dateTime = dateObj.toISOString();
+
       console.log('Booking appointment with data:', {
         teacherId: teacherData._id,
         subjectId: subject._id,
         dateTime,
+        selectedDate,
+        selectedTime
       });
       
       const response = await API.post('/appointments', {
@@ -57,12 +81,15 @@ const BookingForm = ({ subject, teacher, consultant, onBack, onSuccess }) => {
       }
     } catch (err) {
       console.error('Booking error:', err);
-      const errorMsg = err.error || err.msg || err.message || 'Booking failed';
-      alert(errorMsg);
+      const errorMsg = err?.response?.data?.error || err?.message || 'Booking failed';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
+
+  // Get today's date to set as minimum
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="booking-container">
@@ -72,20 +99,52 @@ const BookingForm = ({ subject, teacher, consultant, onBack, onSuccess }) => {
           <span>{teacherData.name || teacherData.studentID || 'Teacher'}</span>
         </h2>
 
-        <label className="booking-label">Select Date & Time</label>
-        <input
-          type="datetime-local"
-          value={dateTime}
-          onChange={(e) => setDateTime(e.target.value)}
-          className="booking-input"
-          disabled={loading}
-        />
+        <div className="booking-step">
+          <label className="booking-label">Step 1: Select Date</label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={handleDateChange}
+            className="booking-input"
+            disabled={loading}
+            min={today}
+          />
+          {selectedDate && (
+            <p className="selected-info">
+              Selected: {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </p>
+          )}
+        </div>
+
+        {selectedDate && (
+          <div className="booking-step">
+            <label className="booking-label">Step 2: Select Time</label>
+            <TimeSlotPicker 
+              teacherId={teacherData._id}
+              subjectId={subject._id}
+              selectedDate={selectedDate}
+              onTimeSelect={handleTimeSelect}
+              selectedTime={selectedTime}
+            />
+            {selectedTime && (
+              <p className="selected-info">
+                Selected: {selectedTime}
+              </p>
+            )}
+          </div>
+        )}
+
+        {error && (
+          <div className="booking-error">
+            <p>{error}</p>
+          </div>
+        )}
 
         <div className="booking-actions">
           <button 
             className="book-btn" 
             onClick={handleBook}
-            disabled={loading}
+            disabled={loading || !selectedDate || !selectedTime}
           >
             {loading ? 'Booking...' : 'Confirm Booking'}
           </button>

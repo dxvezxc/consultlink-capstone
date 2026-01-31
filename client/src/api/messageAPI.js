@@ -4,9 +4,9 @@ const API_BASE_URL = 'http://localhost:5000/api/messages';
 const CONSULTATION_API_URL = 'http://localhost:5000/api/consultations';
 
 // Get all messages for a consultation
-export const getMessages = async (consultationId) => {
+export const getMessages = async (appointmentId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/consultation/${consultationId}`, {
+    const response = await axios.get(`${API_BASE_URL}/consultation/${appointmentId}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -19,10 +19,10 @@ export const getMessages = async (consultationId) => {
 };
 
 // Send a message
-export const sendMessage = async (consultationId, receiverId, content, messageType = 'text') => {
+export const sendMessage = async (appointmentId, receiverId, content, messageType = 'text') => {
   try {
     const response = await axios.post(`${API_BASE_URL}/send`, {
-      consultationId,
+      appointmentId,
       receiverId,
       content,
       messageType
@@ -39,9 +39,9 @@ export const sendMessage = async (consultationId, receiverId, content, messageTy
 };
 
 // Get unread message count for a consultation
-export const getUnreadCount = async (consultationId) => {
+export const getUnreadCount = async (appointmentId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/unread/${consultationId}`, {
+    const response = await axios.get(`${API_BASE_URL}/unread/${appointmentId}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -54,9 +54,9 @@ export const getUnreadCount = async (consultationId) => {
 };
 
 // Get chat status for a consultation
-export const getChatStatus = async (consultationId) => {
+export const getChatStatus = async (appointmentId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/status/${consultationId}`, {
+    const response = await axios.get(`${API_BASE_URL}/status/${appointmentId}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }

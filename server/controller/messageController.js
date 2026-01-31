@@ -189,28 +189,28 @@ const getChatStatus = async (req, res) => {
     const { consultationId } = req.params;
     const userId = req.user._id;
 
-    const consultation = await Consultation.findById(consultationId);
-    if (!consultation) {
-      return res.status(404).json({ message: 'Consultation not found' });
+    const appointment = await Appointment.findById(consultationId);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
     }
 
     const isParticipant = 
-      consultation.student.toString() === userId.toString() || 
-      consultation.teacher.toString() === userId.toString();
+      appointment.student.toString() === userId.toString() || 
+      appointment.teacher.toString() === userId.toString();
 
     if (!isParticipant) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Chat is enabled when consultation is approved
-    const chatEnabled = consultation.status === 'approved';
+    // Chat is enabled when appointment is confirmed
+    const chatEnabled = appointment.status === 'confirmed' || appointment.status === 'completed';
 
     res.status(200).json({
       success: true,
       chatEnabled: chatEnabled,
-      consultationStatus: consultation.status,
-      scheduledDate: consultation.scheduledDate,
-      meetingLink: consultation.meetingLink
+      appointmentStatus: appointment.status,
+      scheduledDate: appointment.dateTime,
+      meetingLink: appointment.meetingLink
     });
   } catch (err) {
     console.error('Get chat status error:', err.message);

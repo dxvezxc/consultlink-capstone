@@ -2,41 +2,32 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const asyncHandler = require('../utils/asyncHandler');
 
 // ====== SPECIFIC ROUTES (Must come before generic :id routes) ======
 
 // @desc    Get all teachers
 // @route   GET /api/users/teachers/all
 // @access  Public
-router.get('/teachers/all', async (req, res) => {
-  try {
-    const teachers = await User.find({ role: 'teacher' })
-      .select('name email studentID role subjects')
-      .populate('subjects', 'name description');
-    
-    res.json(teachers);
-  } catch (err) {
-    console.error('Get teachers error:', err.message);
-    res.status(500).json({ msg: err.message || 'Server error' });
-  }
-});
+router.get('/teachers/all', asyncHandler(async (req, res) => {
+  const teachers = await User.find({ role: 'teacher' })
+    .select('name email studentID role subjects')
+    .populate('subjects', 'name description');
+  
+  res.json(teachers);
+}));
 
 // @desc    Get teachers by role
 // @route   GET /api/users/role/teachers
 // @access  Public
-router.get('/role/teachers', async (req, res) => {
-  try {
-    const teachers = await User.find({ role: 'teacher' }).select('-password');
-    res.json({
-      success: true,
-      count: teachers.length,
-      data: teachers
-    });
-  } catch (err) {
-    console.error('Get teachers error:', err);
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
+router.get('/role/teachers', asyncHandler(async (req, res) => {
+  const teachers = await User.find({ role: 'teacher' }).select('-password');
+  res.json({
+    success: true,
+    count: teachers.length,
+    data: teachers
+  });
+}));
 
 // @desc    Add subject to teacher's subjects
 // @route   POST /api/users/:id/subjects

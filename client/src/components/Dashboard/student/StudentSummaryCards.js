@@ -1,7 +1,7 @@
 import React from 'react';
-import { Clock, CheckCircle, Users, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, TrendingUp, Calendar } from 'lucide-react';
 
-const StudentSummaryCards = ({ stats }) => {
+const StudentSummaryCards = ({ stats, onCardClick }) => {
   const cards = [
     {
       id: 'pending',
@@ -17,9 +17,9 @@ const StudentSummaryCards = ({ stats }) => {
       id: 'approved',
       title: 'Approved',
       value: stats.approved || 0,
-      icon: <CheckCircle size={24} />,
-      color: '#10b981',
-      bgColor: '#ecfdf5',
+      icon: <Calendar size={24} />,
+      color: '#3b82f6',
+      bgColor: '#eff6ff',
       change: 'Next: Tomorrow at 2 PM',
       link: 'appointments'
     },
@@ -27,11 +27,11 @@ const StudentSummaryCards = ({ stats }) => {
       id: 'completed',
       title: 'Completed Sessions',
       value: stats.completed || 0,
-      icon: <Users size={24} />,
-      color: '#3b82f6',
-      bgColor: '#eff6ff',
+      icon: <CheckCircle size={24} />,
+      color: '#10b981',
+      bgColor: '#ecfdf5',
       change: '+3 this month',
-      link: null
+      link: 'appointments'
     },
     {
       id: 'cancelled',
@@ -41,17 +41,51 @@ const StudentSummaryCards = ({ stats }) => {
       color: '#ef4444',
       bgColor: '#fef2f2',
       change: 'Last: 1 week ago',
+      link: 'appointments'
+    },
+    {
+      id: 'hours',
+      title: 'Total Hours',
+      value: `${stats.totalHours || 0}h`,
+      icon: <Clock size={24} />,
+      color: '#8b5cf6',
+      bgColor: '#f5f3ff',
+      change: '↑ Learning progress',
+      link: null
+    },
+    {
+      id: 'rating',
+      title: 'Teachers Avg Rating',
+      value: stats.avgTeacherRating ? stats.avgTeacherRating.toFixed(1) : '0.0',
+      icon: <TrendingUp size={24} />,
+      color: '#f59e0b',
+      bgColor: '#fffbeb',
+      change: stats.reviewCount ? `Based on ${stats.reviewCount} reviews` : 'No ratings yet',
       link: null
     }
   ];
+
+  const handleCardClick = (cardId, cardLink) => {
+    if (onCardClick && cardLink) {
+      onCardClick(cardLink, cardId);
+    }
+  };
 
   return (
     <div className="student-summary-cards">
       {cards.map((card) => (
         <div 
           key={card.id} 
-          className="summary-card"
+          className={`summary-card ${card.link ? 'clickable' : ''}`}
           style={{ borderLeft: `4px solid ${card.color}` }}
+          onClick={() => handleCardClick(card.id, card.link)}
+          role={card.link ? 'button' : 'status'}
+          tabIndex={card.link ? 0 : -1}
+          onKeyPress={(e) => {
+            if (card.link && (e.key === 'Enter' || e.key === ' ')) {
+              handleCardClick(card.id, card.link);
+            }
+          }}
         >
           <div className="card-content">
             <div className="card-icon" style={{ backgroundColor: card.bgColor, color: card.color }}>
@@ -68,7 +102,13 @@ const StudentSummaryCards = ({ stats }) => {
               {card.change}
             </span>
             {card.link && (
-              <button className="card-action">
+              <button 
+                className="card-action"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCardClick(card.id, card.link);
+                }}
+              >
                 View Details →
               </button>
             )}

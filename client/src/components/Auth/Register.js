@@ -78,7 +78,7 @@ const Register = () => {
     if (!formData.studentID) {
       errors.studentID = "Student ID is required";
     } else if (!validateStudentID(formData.studentID)) {
-      errors.studentID = "Use format: YY-XXXX-XXX (e.g., 24-0329-818)";
+      errors.studentID = "Format: YY-XXXX-XXX (e.g., 24-0329-818)";
     }
 
     // Name validation
@@ -86,20 +86,22 @@ const Register = () => {
       errors.name = "Full name is required";
     } else if (formData.name.trim().length < 2) {
       errors.name = "Name must be at least 2 characters";
+    } else if (formData.name.trim().length > 50) {
+      errors.name = "Name must not exceed 50 characters";
     }
 
     // Email validation
     if (!formData.email) {
       errors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
-      errors.email = "Please enter a valid email address";
+      errors.email = "Please enter a valid email (e.g., name@example.com)";
     }
 
     // Password validation
     if (!formData.password) {
       errors.password = "Password is required";
     } else if (!validatePassword(formData.password)) {
-      errors.password = "Password must be at least 6 characters and contain a number";
+      errors.password = "Min. 6 characters with at least one number";
     }
 
     // Confirm password validation
@@ -111,6 +113,29 @@ const Register = () => {
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Get password strength
+  const getPasswordStrength = (password) => {
+    if (!password) return "";
+    if (password.length < 6) return "weak";
+    if (password.length < 10 && /\d/.test(password)) return "medium";
+    if (/[A-Z]/.test(password) && /\d/.test(password)) return "strong";
+    return "medium";
+  };
+
+  // Get helpful error hint
+  const getErrorHint = (errorMsg) => {
+    if (errorMsg?.toLowerCase().includes("already")) {
+      return "This email or student ID is already registered. Try logging in instead.";
+    }
+    if (errorMsg?.toLowerCase().includes("email")) {
+      return "Make sure you're using a valid, accessible email address.";
+    }
+    if (errorMsg?.toLowerCase().includes("network") || errorMsg?.toLowerCase().includes("connection")) {
+      return "Connection error. Check your internet and try again.";
+    }
+    return null;
   };
 
   const handleSubmit = async (e) => {
@@ -125,11 +150,11 @@ const Register = () => {
       return;
     }
 
-    // Prepare data for registration (remove confirmPassword)
+    // Prepare data for registration
     const userData = {
       name: formData.name.trim(),
-      email: formData.email.toLowerCase(),
-      studentID: formData.studentID,
+      email: formData.email.toLowerCase().trim(),
+      studentID: formData.studentID.trim(),
       password: formData.password,
       role: "student"
     };
@@ -140,29 +165,26 @@ const Register = () => {
     
     if (result.success) {
       console.log('Registration successful!');
-      // Navigate to the appropriate dashboard based on role
-      let dashboard = "/dashboard";
-      if (result.data.user.role === "teacher") {
-        dashboard = "/teacher-dashboard";
-      } else if (result.data.user.role === "admin") {
-        dashboard = "/admin-dashboard";
-      }
-      
-      console.log('Navigating to:', dashboard);
-      // Redirect to dashboard
-      navigate(dashboard, { replace: true });
+      navigate("/dashboard", { replace: true });
     } else {
       console.error('Registration failed:', result.error);
-      // Update error state instead of using alert
-      setValidationErrors({
-        submit: result.error || 'Registration failed. Please try again.'
-      });
+      // Check if it's a student ID or email duplicate error
+      const serverError = result.error || 'Registration failed. Please try again.';
+      if (serverError.toLowerCase().includes("student")) {
+        setValidationErrors({ studentID: "This student ID is already registered" });
+      } else if (serverError.toLowerCase().includes("email")) {
+        setValidationErrors({ email: "This email is already registered" });
+      } else {
+        setValidationErrors({ submit: serverError });
+      }
+      
+      if (error) clearError();
     }
   };
 
   // Check if form is valid for enabling submit button
   const isFormValid = () => {
-    const valid = (
+    return (
       formData.studentID &&
       formData.name.trim() &&
       formData.email &&
@@ -171,78 +193,49 @@ const Register = () => {
       formData.password === formData.confirmPassword &&
       validateStudentID(formData.studentID) &&
       validateEmail(formData.email) &&
-      validatePassword(formData.password)
+      validatePassword(formData.password) &&
+      !Object.values(validationErrors).some(e => e)
     );
-    
-    // Debug logging
-    if (!valid) {
-      console.log('Form validation status:', {
-        hasStudentID: !!formData.studentID,
-        hasName: !!formData.name.trim(),
-        hasEmail: !!formData.email,
-        hasPassword: !!formData.password,
-        hasConfirmPassword: !!formData.confirmPassword,
-        passwordsMatch: formData.password === formData.confirmPassword,
-        validStudentID: validateStudentID(formData.studentID),
-        validEmail: validateEmail(formData.email),
-        validPassword: validatePassword(formData.password)
-      });
-    }
-    
-    return valid;
   };
 
   return (
     <div className="auth-bg">
       <div className="auth-card">
         <h2>Create Student Account</h2>
+        <p style={{ textAlign: "center", color: "#64748b", marginBottom: "24px", fontSize: "14px" }}>
+          Join ConsultLink and book consultations with teachers
+        </p>
 
         {/* Auth Context Error Display */}
         {error && (
-          <div className="auth-error" style={{ 
-            background: "#fee", 
-            border: "2px solid #f99", 
-            borderRadius: "6px", 
-            padding: "12px 16px", 
-            marginBottom: "20px", 
-            color: "#c00",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            fontSize: "14px",
-            fontWeight: "500"
-          }}>
-            <span style={{fontSize: "18px"}}>❌</span>
-            <div>
-              <strong>Registration Error!</strong>
-              <div style={{fontSize: "13px", marginTop: "4px", color: "#a00"}}>
+          <div className="auth-error">
+            <div style={{ flex: 1 }}>
+              <strong>Registration Error</strong>
+              <div style={{ fontSize: "13px", marginTop: "6px", opacity: 0.9 }}>
                 {error}
               </div>
+              {getErrorHint(error) && (
+                <div style={{ fontSize: "12px", marginTop: "8px", opacity: 0.8, fontStyle: "italic" }}>
+                  💡 {getErrorHint(error)}
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Submission Error Display */}
         {validationErrors.submit && (
-          <div className="auth-error" style={{ 
-            background: "#fee", 
-            border: "2px solid #f99", 
-            borderRadius: "6px", 
-            padding: "12px 16px", 
-            marginBottom: "20px", 
-            color: "#c00",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            fontSize: "14px",
-            fontWeight: "500"
-          }}>
-            <span style={{fontSize: "18px"}}>⚠</span>
-            <div>
+          <div className="auth-error">
+            <div style={{ flex: 1 }}>
               <strong>Cannot Create Account</strong>
-              <div style={{fontSize: "13px", marginTop: "4px", color: "#a00"}}>
+              <div style={{ fontSize: "13px", marginTop: "6px", opacity: 0.9 }}>
                 {validationErrors.submit}
               </div>
+              {getErrorHint(validationErrors.submit) && (
+                <div style={{ fontSize: "12px", marginTop: "8px", opacity: 0.8, fontStyle: "italic" }}>
+                  💡 {getErrorHint(validationErrors.submit)}
+                </div>
+              )}
             </div>
           </div>
         )}

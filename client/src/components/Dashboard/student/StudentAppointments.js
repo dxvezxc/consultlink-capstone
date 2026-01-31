@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import API from '../../../api/axios';
-import { Trash2, AlertCircle } from 'lucide-react';
+import { Trash2, AlertCircle, Eye } from 'lucide-react';
 
-const StudentAppointments = ({ appointments = [], onBook, user }) => {
+const StudentAppointments = ({ appointments = [], onBook, user, onAppointmentClick }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -139,20 +139,27 @@ const StudentAppointments = ({ appointments = [], onBook, user }) => {
                       </span>
                     </td>
                     <td>
-                      {statusText.toLowerCase() !== 'cancelled' && statusText.toLowerCase() !== 'completed' && (
+                      <div className="action-buttons">
                         <button
-                          className="cancel-action-btn"
-                          onClick={() => handleCancel(appointment._id)}
-                          disabled={loading}
-                          title="Cancel appointment"
+                          className="view-details-btn"
+                          onClick={() => onAppointmentClick && onAppointmentClick(appointment)}
+                          title="View details"
                         >
-                          <Trash2 size={16} />
-                          Cancel
+                          <Eye size={16} />
+                          View
                         </button>
-                      )}
-                      {(statusText.toLowerCase() === 'cancelled' || statusText.toLowerCase() === 'completed') && (
-                        <span className="action-disabled">—</span>
-                      )}
+                        {statusText.toLowerCase() !== 'cancelled' && statusText.toLowerCase() !== 'completed' && (
+                          <button
+                            className="cancel-action-btn"
+                            onClick={() => handleCancel(appointment._id)}
+                            disabled={loading}
+                            title="Cancel appointment"
+                          >
+                            <Trash2 size={16} />
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

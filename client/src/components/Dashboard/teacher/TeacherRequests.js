@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, BookOpen, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import consultationsAPI from '../../../api/consultations';
+import ChatBox from '../../Chat/ChatBox';
 import '../../../styles/teacherViews.css';
 
 const TeacherRequests = () => {
   const [filter, setFilter] = useState('all');
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [chatAppointment, setChatAppointment] = useState(null);
   const [requests, setRequests] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -38,7 +40,7 @@ const TeacherRequests = () => {
 
   const filteredRequests = filter === 'all' 
     ? requests 
-    : requests.filter(req => req.status === filter);
+    : requests.filter(req => req.status?.toLowerCase() === filter.toLowerCase());
 
   const handleApprove = async (id) => {
     try {
@@ -63,6 +65,7 @@ const TeacherRequests = () => {
   };
 
   const handleViewDetails = (request) => {
+    console.log('TeacherRequests: Selected request status:', request.status);
     setSelectedRequest(request);
   };
 
@@ -80,7 +83,7 @@ const TeacherRequests = () => {
         </button>
         <div className="requests-filters">
           <div className="filter-tabs">
-            {['all', 'pending', 'approved', 'rejected'].map(tab => (
+            {['all', 'pending', 'confirmed', 'completed', 'canceled'].map(tab => (
               <button
                 key={tab}
                 className={`filter-tab ${filter === tab ? 'active' : ''}`}
@@ -91,8 +94,8 @@ const TeacherRequests = () => {
             ))}
           </div>
           <div className="requests-stats">
-            <span className="stat pending">{requests.filter(r => r.status === 'pending').length} Pending</span>
-            <span className="stat approved">{requests.filter(r => r.status === 'approved').length} Approved</span>
+            <span className="stat pending">{requests.filter(r => r.status?.toLowerCase() === 'pending').length} Pending</span>
+            <span className="stat approved">{requests.filter(r => r.status?.toLowerCase() === 'confirmed').length} Confirmed</span>
           </div>
         </div>
       </div>
@@ -137,7 +140,7 @@ const TeacherRequests = () => {
                 </div>
 
                 <div className="request-actions">
-                  {request.status === 'pending' && (
+                  {request.status?.toLowerCase() === 'pending' && (
                     <>
                       <button 
                         className="action-btn approve-btn"
@@ -155,6 +158,16 @@ const TeacherRequests = () => {
                       </button>
                     </>
                   )}
+                  {request.status?.toLowerCase() === 'confirmed' && (
+                    <button 
+                      className="action-btn message-btn"
+                      onClick={() => setChatAppointment(request)}
+                      title="Message Student"
+                    >
+                      <MessageSquare size={16} />
+                      Message
+                    </button>
+                  )}
                   <button 
                     className="action-btn details-btn"
                     onClick={() => handleViewDetails(request)}
@@ -171,6 +184,8 @@ const TeacherRequests = () => {
         {/* Request Details Sidebar */}
         {selectedRequest && (
           <div className="request-details">
+            {console.log('TeacherRequests: Rendering details sidebar, selectedRequest:', selectedRequest)}
+            {console.log('TeacherRequests: Status check - confirmed:', selectedRequest.status === 'confirmed', 'completed:', selectedRequest.status === 'completed')}
             <div className="details-header">
               <h3>Request Details</h3>
               <button 
@@ -234,6 +249,29 @@ const TeacherRequests = () => {
                 </button>
               </div>
             )}
+            
+            {(selectedRequest.status?.toLowerCase() === 'confirmed' || selectedRequest.status?.toLowerCase() === 'completed') && (
+              <div className="details-actions">
+                <button 
+                  className="action-btn message-full"
+                  onClick={() => setChatAppointment(selectedRequest)}
+                >
+                  <MessageSquare size={18} />
+                  Message Student
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Chat Box */}
+        {chatAppointment && (
+          <div className="chatbox-overlay">
+            <ChatBox
+              appointment={chatAppointment}
+              otherUser={chatAppointment.student}
+              onClose={() => setChatAppointment(null)}
+            />
           </div>
         )}
       </div>
