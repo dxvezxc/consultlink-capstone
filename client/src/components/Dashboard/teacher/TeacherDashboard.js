@@ -12,8 +12,8 @@ import TeacherAppointments from '../teacher/TeacherAppointments';
 import TeacherAvailability from '../teacher/TeacherAvailability';
 import TeacherRequests from '../teacher/TeacherRequests';
 import TeacherSchedule from '../teacher/TeacherSchedule';
-import TeacherSubjects from '../teacher/TeacherSubjects';
 import TeacherStudents from '../teacher/TeacherStudents';
+import TeacherProfile from '../teacher/TeacherProfile';
 
 // Import CSS
 import '../../../styles/teacherDashboard.css';
@@ -26,6 +26,7 @@ const TeacherDashboard = () => {
   const [view, setView] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(user);
   const [stats, setStats] = useState({
     pendingRequests: 0,
     todayConsultations: 0,
@@ -129,8 +130,13 @@ const TeacherDashboard = () => {
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
       logout();
-      navigate('/login');
+      navigate('/');
     }
+  };
+
+  // Handle profile update to refresh sidebar
+  const handleProfileUpdate = (updatedUser) => {
+    setCurrentUser(updatedUser);
   };
 
   // Handle card click to navigate
@@ -156,7 +162,7 @@ const TeacherDashboard = () => {
       <TeacherSidebar 
         view={view}
         setView={setView}
-        user={user}
+        user={currentUser}
         onLogout={handleLogout}
       />
 
@@ -220,29 +226,16 @@ const TeacherDashboard = () => {
             <TeacherRequests />
           )}
 
-          {view === 'subjects' && (
-            <TeacherSubjects />
-          )}
-
           {view === 'students' && (
             <TeacherStudents />
           )}
 
           {view === 'profile' && (
-            <div className="profile-view">
-              <div className="view-header">
-                <h2>Teacher Profile</h2>
-                <button 
-                  className="back-btn"
-                  onClick={() => setView('dashboard')}
-                >
-                  ← Back to Dashboard
-                </button>
-              </div>
-              <div className="profile-content">
-                <p>Profile management coming soon...</p>
-              </div>
-            </div>
+            <TeacherProfile 
+              user={currentUser}
+              onBack={() => setView('dashboard')}
+              onProfileUpdate={handleProfileUpdate}
+            />
           )}
         </div>
       </div>

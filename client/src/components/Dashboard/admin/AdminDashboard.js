@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, Bell, HelpCircle, Calendar, LogOut, Users, BookOpen, BarChart3, Settings } from 'lucide-react';
+import { LogOut, Users, BookOpen, BarChart3 } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [teachers, setTeachers] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [consultations, setConsultations] = useState([]);
   const [newTeacher, setNewTeacher] = useState({ name: '', email: '', subjects: [] });
   const [newSubject, setNewSubject] = useState({ name: '' });
   const [error, setError] = useState('');
@@ -13,13 +19,14 @@ const AdminDashboard = () => {
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('dashboard');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [notifications] = useState([
-    { id: 1, message: 'New teacher registered', time: '10 min ago', read: false },
-    { id: 2, message: 'System update completed', time: '1 hour ago', read: true },
-  ]);
 
-  const unreadNotifications = notifications.filter(n => !n.read).length;
+  // Handle logout
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      logout();
+      navigate('/');
+    }
+  };
 
   // Fetch teachers and subjects on load
   useEffect(() => {
@@ -42,8 +49,29 @@ const AdminDashboard = () => {
         
         const teacherRes = await axios.get('/api/admin/teachers', config);
         const subjectRes = await axios.get('/api/admin/subjects', config);
-        setTeachers(teacherRes.data);
-        setSubjects(subjectRes.data);
+        const studentsRes = await axios.get('/api/admin/users?role=student', config);
+        
+        let consultations = [];
+        try {
+          const consultationRes = await axios.get('/api/consultations', config);
+          // Extract consultations from the response - handle different response structures
+          if (Array.isArray(consultationRes.data)) {
+            consultations = consultationRes.data;
+          } else if (consultationRes.data?.consultations && Array.isArray(consultationRes.data.consultations)) {
+            consultations = consultationRes.data.consultations;
+          } else if (consultationRes.data?.data && Array.isArray(consultationRes.data.data)) {
+            consultations = consultationRes.data.data;
+          }
+        } catch (consultErr) {
+          console.log('Could not fetch consultations:', consultErr.message);
+          consultations = [];
+        }
+        
+        setTeachers(teacherRes.data || []);
+        setSubjects(subjectRes.data || []);
+        setStudents(Array.isArray(studentsRes.data) ? studentsRes.data : (studentsRes.data?.data || []));
+        setSubjects(subjectRes.data || []);
+        setConsultations(Array.isArray(consultations) ? consultations : []);
         setError('');
       } catch (err) {
         console.error('Fetch error details:', err.response?.data || err.message);
@@ -206,157 +234,79 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       {/* Sidebar */}
       <div className="admin-sidebar">
-        {/* Admin Profile Section */}
-        <div className="admin-profile-section">
-          <div className="admin-avatar">A</div>
-          <div className="admin-info">
-            <h3 className="admin-name">Administrator</h3>
-            <p className="admin-role">Admin</p>
-            <p className="admin-id">System Admin</p>
-            <div className="admin-stats">
-              <div className="stat">
-                <span className="stat-number">{teachers.length}</span>
-                <span className="stat-label">Teachers</span>
-              </div>
-              <div className="stat">
-                <span className="stat-number">{subjects.length}</span>
-                <span className="stat-label">Subjects</span>
+        <div className="sidebar-content">
+          {/* Admin Profile Section */}
+          <div className="admin-profile-section">
+            <div className="admin-avatar">A</div>
+            <div className="admin-info">
+              <h3 className="admin-name">Administrator</h3>
+              <p className="admin-role">Admin</p>
+              <p className="admin-id">System Admin</p>
+              <div className="admin-stats">
+                <div className="stat">
+                  <span className="stat-number">{teachers.length}</span>
+                  <span className="stat-label">Teachers</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-number">{subjects.length}</span>
+                  <span className="stat-label">Subjects</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Navigation Menu */}
-        <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setView('dashboard')}
-          >
-            <span className="nav-icon"><BarChart3 size={20} /></span>
-            <span className="nav-label">Dashboard</span>
-          </button>
-          <button
-            className={`nav-item ${view === 'teachers' ? 'active' : ''}`}
-            onClick={() => setView('teachers')}
-          >
-            <span className="nav-icon"><Users size={20} /></span>
-            <span className="nav-label">Teachers</span>
-          </button>
-          <button
-            className={`nav-item ${view === 'subjects' ? 'active' : ''}`}
-            onClick={() => setView('subjects')}
-          >
-            <span className="nav-icon"><BookOpen size={20} /></span>
-            <span className="nav-label">Subjects</span>
-          </button>
-          <button
-            className={`nav-item ${view === 'settings' ? 'active' : ''}`}
-            onClick={() => setView('settings')}
-          >
-            <span className="nav-icon"><Settings size={20} /></span>
-            <span className="nav-label">Settings</span>
-          </button>
-        </nav>
+          {/* Navigation Menu */}
+          <nav className="sidebar-nav">
+            <button
+              className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setView('dashboard')}
+            >
+              <span className="nav-icon"><BarChart3 size={20} /></span>
+              <span className="nav-label">Dashboard</span>
+            </button>
+            <button
+              className={`nav-item ${view === 'teachers' ? 'active' : ''}`}
+              onClick={() => setView('teachers')}
+            >
+              <span className="nav-icon"><Users size={20} /></span>
+              <span className="nav-label">Teachers</span>
+            </button>
+            <button
+              className={`nav-item ${view === 'subjects' ? 'active' : ''}`}
+              onClick={() => setView('subjects')}
+            >
+              <span className="nav-icon"><BookOpen size={20} /></span>
+              <span className="nav-label">Subjects</span>
+            </button>
+          </nav>
 
-        {/* Quick Stats */}
-        <div className="quick-stats">
-          <div className="quick-stat">
-            <div className="quick-stat-icon today">👥</div>
-            <div className="quick-stat-info">
-              <span className="quick-stat-number">{teachers.length}</span>
-              <span className="quick-stat-label">Teachers</span>
+          {/* Quick Stats */}
+          <div className="quick-stats">
+            <div className="quick-stat">
+              <div className="quick-stat-icon today">👥</div>
+              <div className="quick-stat-info">
+                <span className="quick-stat-number">{teachers.length}</span>
+                <span className="quick-stat-label">Teachers</span>
+              </div>
             </div>
-          </div>
-          <div className="quick-stat">
-            <div className="quick-stat-icon upcoming">📚</div>
-            <div className="quick-stat-info">
-              <span className="quick-stat-number">{subjects.length}</span>
-              <span className="quick-stat-label">Subjects</span>
+            <div className="quick-stat">
+              <div className="quick-stat-icon upcoming">📚</div>
+              <div className="quick-stat-info">
+                <span className="quick-stat-number">{subjects.length}</span>
+                <span className="quick-stat-label">Subjects</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Logout Button */}
-        <button className="logout-btn">
+        <button className="logout-btn" onClick={handleLogout}>
           <LogOut size={18} />
           <span>Logout</span>
         </button>
       </div>
 
       <div className="admin-main">
-        {/* Header */}
-        <header className="admin-header">
-          {/* Search Bar */}
-          <div className="header-search">
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search teachers, subjects..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-          </div>
-
-          {/* Header Actions */}
-          <div className="header-actions">
-            {/* Calendar Button */}
-            <button className="action-btn calendar-btn">
-              <Calendar size={20} />
-              <span className="action-label">Calendar</span>
-            </button>
-
-            {/* Help Button */}
-            <button className="action-btn help-btn">
-              <HelpCircle size={20} />
-              <span className="action-label">Help</span>
-            </button>
-
-            {/* Notifications */}
-            <div className="notifications-dropdown">
-              <button className="action-btn notification-btn">
-                <Bell size={20} />
-                {unreadNotifications > 0 && (
-                  <span className="notification-badge">{unreadNotifications}</span>
-                )}
-              </button>
-              
-              {/* Notifications Panel */}
-              <div className="notifications-panel">
-                <div className="notifications-header">
-                  <h4>Notifications</h4>
-                  <button className="mark-all-read">Mark all read</button>
-                </div>
-                <div className="notifications-list">
-                  {notifications.map(notification => (
-                    <div 
-                      key={notification.id} 
-                      className={`notification-item ${notification.read ? 'read' : 'unread'}`}
-                    >
-                      <div className="notification-dot"></div>
-                      <div className="notification-content">
-                        <p className="notification-message">{notification.message}</p>
-                        <span className="notification-time">{notification.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* User Profile */}
-            <div className="user-profile-dropdown">
-              <button className="user-profile-btn">
-                <div className="user-avatar-small">A</div>
-                <div className="user-info">
-                  <span className="user-name">Admin</span>
-                  <span className="user-role">Administrator</span>
-                </div>
-              </button>
-            </div>
-          </div>
-        </header>
-
         {/* Error Display */}
         {error && (
           <div className="dashboard-error">
@@ -401,6 +351,179 @@ const AdminDashboard = () => {
                     <h3 className="card-value">{subjects.length}</h3>
                     <p className="card-title">Total Subjects</p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Monitoring Section */}
+            <div className="monitoring-section">
+              <h2>System Activity Monitoring</h2>
+              
+              <div className="monitoring-grid">
+                {/* Teachers Overview */}
+                <div className="monitoring-card teachers-card">
+                  <div className="card-header">
+                    <h3>👨‍🏫 Teachers Overview</h3>
+                    <span className="count-badge">{teachers.length}</span>
+                  </div>
+                  
+                  <div className="stat-summary">
+                    <div className="stat-row">
+                      <span>Total Teachers</span>
+                      <strong>{teachers.length}</strong>
+                    </div>
+                  </div>
+
+                  {teachers.length > 0 ? (
+                    <div className="recent-list">
+                      <h4>Recent Teachers</h4>
+                      <div className="user-list">
+                        {teachers.slice(0, 5).map(teacher => (
+                          <div key={teacher._id} className="user-item">
+                            <div className="user-avatar">
+                              {teacher.name?.charAt(0) || 'T'}
+                            </div>
+                            <div className="user-info">
+                              <p className="user-name">{teacher.name}</p>
+                              <p className="user-email">{teacher.email}</p>
+                            </div>
+                            <span className="status-badge active">
+                              ✓ Active
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="empty-message">No teachers yet</p>
+                  )}
+                </div>
+
+                {/* Students Overview */}
+                <div className="monitoring-card students-overview-card">
+                  <div className="card-header">
+                    <h3>👨‍🎓 Students Overview</h3>
+                    <span className="count-badge">{students.length}</span>
+                  </div>
+                  
+                  <div className="stat-summary">
+                    <div className="stat-row">
+                      <span>Total Students</span>
+                      <strong>{students.length}</strong>
+                    </div>
+                  </div>
+
+                  {students.length > 0 ? (
+                    <div className="recent-list">
+                      <h4>Recent Students</h4>
+                      <div className="user-list">
+                        {students.slice(0, 5).map(student => (
+                          <div key={student._id} className="user-item">
+                            <div className="user-avatar">
+                              {student.name?.charAt(0) || 'S'}
+                            </div>
+                            <div className="user-info">
+                              <p className="user-name">{student.name}</p>
+                              <p className="user-email">{student.email}</p>
+                            </div>
+                            <span className={`status-badge ${student.isActive ? 'active' : 'inactive'}`}>
+                              {student.isActive ? '✓ Active' : '✗ Inactive'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="empty-message">No students yet</p>
+                  )}
+                </div>
+
+                {/* Subjects Overview */}
+                <div className="monitoring-card subjects-card">
+                  <div className="card-header">
+                    <h3>📚 Subjects Overview</h3>
+                    <span className="count-badge">{subjects.length}</span>
+                  </div>
+                  
+                  <div className="stat-summary">
+                    <div className="stat-row">
+                      <span>Total Subjects</span>
+                      <strong>{subjects.length}</strong>
+                    </div>
+                  </div>
+
+                  {subjects.length > 0 ? (
+                    <div className="recent-list">
+                      <h4>All Subjects</h4>
+                      <div className="subject-list">
+                        {subjects.slice(0, 5).map(subject => (
+                          <div key={subject._id} className="subject-item">
+                            <div className="subject-icon">📖</div>
+                            <div className="subject-info">
+                              <p className="subject-name">{subject.name}</p>
+                            </div>
+                            <span className="status-badge active">
+                              ✓ Active
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="empty-message">No subjects yet</p>
+                  )}
+                </div>
+
+                {/* Consultation Overview */}
+                <div className="monitoring-card consultation-card">
+                  <div className="card-header">
+                    <h3>💬 Consultation Overview</h3>
+                    <span className="count-badge">{Array.isArray(consultations) ? consultations.length : 0}</span>
+                  </div>
+                  
+                  <div className="stat-summary">
+                    <div className="stat-row">
+                      <span>Total Consultations</span>
+                      <strong>{Array.isArray(consultations) ? consultations.length : 0}</strong>
+                    </div>
+                    <div className="stat-row">
+                      <span>Pending</span>
+                      <strong>{Array.isArray(consultations) ? consultations.filter(c => c.status === 'pending').length : 0}</strong>
+                    </div>
+                    <div className="stat-row">
+                      <span>Confirmed</span>
+                      <strong>{Array.isArray(consultations) ? consultations.filter(c => c.status === 'confirmed').length : 0}</strong>
+                    </div>
+                    <div className="stat-row">
+                      <span>Completed</span>
+                      <strong>{Array.isArray(consultations) ? consultations.filter(c => c.status === 'completed').length : 0}</strong>
+                    </div>
+                  </div>
+
+                  {Array.isArray(consultations) && consultations.length > 0 ? (
+                    <div className="recent-list">
+                      <h4>Recent Consultations</h4>
+                      <div className="consultation-list">
+                        {consultations.slice(0, 5).map(consultation => (
+                          <div key={consultation._id} className="consultation-item">
+                            <div className="consultation-info">
+                              <p className="consultation-student">
+                                {consultation.student?.name || 'Student'}
+                              </p>
+                              <p className="consultation-teacher">
+                                with {consultation.teacher?.name || 'Teacher'}
+                              </p>
+                            </div>
+                            <span className={`status-badge ${consultation.status === 'pending' ? 'pending' : consultation.status === 'confirmed' ? 'confirmed' : 'completed'}`}>
+                              {consultation.status.charAt(0).toUpperCase() + consultation.status.slice(1)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="empty-message">No consultations yet</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -585,16 +708,6 @@ const AdminDashboard = () => {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Settings */}
-        {view === 'settings' && (
-          <div className="management-content">
-            <h1>System Settings</h1>
-            <div className="admin-card">
-              <p>Settings coming soon...</p>
             </div>
           </div>
         )}

@@ -8,8 +8,8 @@ import { teachersAPI } from '../../../api/teachers';
 // Components
 import StudentSidebar from './StudentSidebar';
 import StudentHeader from './StudentHeader';
-import StudentSummaryCards from './StudentSummaryCards';
 import StudentAppointments from './StudentAppointments';
+import StudentProfile from './StudentProfile';
 import BookingForm from '../../Booking/BookingForm';
 import AppointmentDetailModal from './AppointmentDetailModal';
 import ChatBox from '../../Chat/ChatBox';
@@ -262,15 +262,10 @@ const StudentDashboard = () => {
   // Handle logout
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
-  // Handle card click to view details or navigate
-  const handleCardClick = (link, cardId) => {
-    if (link === 'appointments') {
-      setView('appointments');
-    }
-  };
+  // Handle password change
 
   // Handle appointment click to show modal
   const handleAppointmentClick = (appointment) => {
@@ -364,6 +359,7 @@ const StudentDashboard = () => {
         startBooking={startBooking}
         onLogout={handleLogout}
         user={user}
+        stats={stats}
       />
 
       <div className="student-main">
@@ -384,10 +380,6 @@ const StudentDashboard = () => {
         {/* Main Content Views */}
         {view === 'dashboard' && (
           <>
-            <StudentSummaryCards 
-              stats={stats} 
-              onCardClick={handleCardClick}
-            />
             <StudentAppointments 
               onBook={startBooking} 
               user={user}
@@ -620,7 +612,6 @@ const StudentDashboard = () => {
                       </div>
                       <div className="teacher-info">
                         <h3 className="teacher-name">{teacher.name}</h3>
-                        <p className="teacher-email">{teacher.email}</p>
                       </div>
                     </div>
                     <div className="teacher-body">
@@ -638,19 +629,16 @@ const StudentDashboard = () => {
                           )}
                         </div>
                       </div>
-                      <div className="teacher-rating">
-                        <span className="rating-stars">★★★★☆</span>
-                        <span className="rating-text">4.2/5</span>
-                      </div>
                     </div>
                     <div className="teacher-footer">
+                      <p className="teacher-email-footer">{teacher.email}</p>
                       <button 
                         className="contact-btn"
                         onClick={() => {
                           setSelectedConsultant(teacher);
                           if (teacher.subjects && teacher.subjects.length > 0) {
                             setSelectedSubject(teacher.subjects[0]);
-                            setView('book');
+                            setView('bookForm');
                           }
                         }}
                       >
@@ -672,74 +660,11 @@ const StudentDashboard = () => {
 
         {/* Profile View */}
         {view === 'profile' && (
-          <div className="profile-view">
-            <div className="view-header">
-              <h2>My Profile</h2>
-              <button 
-                className="back-btn"
-                onClick={() => setView('dashboard')}
-              >
-                ← Back to Dashboard
-              </button>
-            </div>
-            <div className="profile-container">
-              <div className="profile-card">
-                <div className="profile-header">
-                  <div className="profile-avatar">
-                    {user?.name?.charAt(0) || 'S'}
-                  </div>
-                  <div className="profile-info">
-                    <h3 className="profile-name">{user?.name || 'Student'}</h3>
-                    <p className="profile-email">{user?.email || 'No email'}</p>
-                  </div>
-                </div>
-                
-                <div className="profile-details">
-                  <div className="detail-group">
-                    <label>Student ID</label>
-                    <p className="detail-value">{user?.studentID || 'N/A'}</p>
-                  </div>
-                  
-                  <div className="detail-group">
-                    <label>Role</label>
-                    <p className="detail-value">Student</p>
-                  </div>
-                  
-                  <div className="detail-group">
-                    <label>Department</label>
-                    <p className="detail-value">{user?.department || 'Not specified'}</p>
-                  </div>
-                  
-                  <div className="detail-group">
-                    <label>Account Status</label>
-                    <p className="detail-value">
-                      <span className="status-active">✓ Active</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="profile-stats">
-                  <div className="stat-box">
-                    <div className="stat-value">8</div>
-                    <div className="stat-label">Completed Sessions</div>
-                  </div>
-                  <div className="stat-box">
-                    <div className="stat-value">2</div>
-                    <div className="stat-label">Pending Sessions</div>
-                  </div>
-                  <div className="stat-box">
-                    <div className="stat-value">4.5</div>
-                    <div className="stat-label">Average Rating</div>
-                  </div>
-                </div>
-
-                <div className="profile-actions">
-                  <button className="edit-profile-btn">Edit Profile</button>
-                  <button className="change-password-btn">Change Password</button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StudentProfile 
+            user={user}
+            stats={stats}
+            onBack={() => setView('dashboard')}
+          />
         )}
       </div>
 

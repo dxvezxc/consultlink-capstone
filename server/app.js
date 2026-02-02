@@ -121,8 +121,8 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));
   
-  // Serve React app for any unknown routes
-  app.get('*', (req, res) => {
+  // Serve React app for any unknown routes (send index.html for SPA routing)
+  app.use((req, res) => {
     res.sendFile(path.resolve(__dirname, '../client/build', 'index.html'));
   });
 } else {
@@ -132,13 +132,13 @@ if (process.env.NODE_ENV === 'production') {
       message: 'Consultation Appointment System API',
       version: '1.0.0',
       environment: process.env.NODE_ENV,
-      docs: '/api-docs' // You can add Swagger documentation later
+      docs: '/api-docs'
     });
   });
 }
 
-// 404 Handler for API routes (use path pattern compatible with newer path-to-regexp)
-app.use('/api/{*splat}', notFound);
+// 404 Handler for API routes (must be after all other routes)
+app.use(notFound);
 
 // Global error handler
 app.use(errorHandler);

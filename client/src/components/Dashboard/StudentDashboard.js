@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useFetch } from '../../hooks/useFetch';
-import SummaryCard from './common/SummaryCard';
 
 export default function StudentDashboard() {
   const { data: consultations } = useFetch('/api/consultations/user');
@@ -15,12 +14,6 @@ export default function StudentDashboard() {
   return (
     <div className="student-dashboard">
       <h1>Student Dashboard</h1>
-
-      <div className="dashboard-cards">
-        <SummaryCard title="Upcoming Consultations" count={upcomingCount} color="blue" />
-        <SummaryCard title="Completed Consultations" count={completedCount} color="green" />
-        <SummaryCard title="Pending Requests" count={pendingCount} color="orange" />
-      </div>
 
       <div className="dashboard-section">
         <h2>Recent Consultations</h2>

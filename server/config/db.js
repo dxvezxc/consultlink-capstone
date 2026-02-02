@@ -6,7 +6,7 @@ const connectDB = async () => {
     console.log(`📍 Connection string: ${process.env.ATLAS_URL.split('@')[0]}@***`); // Log without password
     
     const connection = await mongoose.connect(process.env.ATLAS_URL, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       retryWrites: true,
       w: 'majority',

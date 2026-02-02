@@ -83,19 +83,100 @@
   color: #fff;
 }
 
-/* RIGHT VISUAL */
-.hero-visual {
+/* RIGHT AUTH FORMS */
+.hero-auth {
   flex: 1;
   display: flex;
   justify-content: center;
+  min-width: 350px;
 }
 
-.visual-card {
+.auth-card {
   background: white;
-  padding: 30px;
+  padding: 0;
   border-radius: 20px;
-  width: 280px;
+  width: 100%;
+  max-width: 400px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.auth-tabs {
+  display: flex;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.auth-tab.active {
+  background: white;
+  color: #4f46e5;
+  border-bottom: 2px solid #4f46e5;
+}
+
+.auth-tab:hover {
+  color: #4f46e5;
+}
+
+.auth-form {
+  padding: 30px;
+}
+
+.auth-form h3 {
+  font-size: 24px;
+  margin-bottom: 24px;
+  color: #1e293b;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.error-message {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
 }
 
 .visual-card h3 {
@@ -150,15 +231,50 @@
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
+  .hero-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 40px;
+  }
+
   .hero-text h1 {
     font-size: 36px;
   }
 
-  .hero-container {
-    text-align: center;
+  .hero-auth {
+    min-width: auto;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .auth-card {
+    max-width: 100%;
+  }
+
+  .auth-form {
+    padding: 20px;
   }
 
   .hero-buttons {
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-hero {
+    padding: 40px 20px;
+  }
+
+  .hero-text h1 {
+    font-size: 28px;
+  }
+
+  .auth-form h3 {
+    font-size: 20px;
+  }
+
+  .auth-tab {
+    padding: 12px 16px;
+    font-size: 14px;
   }
 }

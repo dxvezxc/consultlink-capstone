@@ -14,7 +14,12 @@ const protect = async (req, res, next) => {
     token = req.cookies.token;
   }
 
+  console.log('=== PROTECT MIDDLEWARE ===');
+  console.log('Token present:', !!token);
+  console.log('Auth header:', req.headers.authorization?.substring(0, 20) + '...');
+
   if (!token) {
+    console.log('NO TOKEN FOUND - Returning 401');
     return res.status(401).json({ 
       success: false, 
       error: 'Not authorized to access this route' 
@@ -24,11 +29,14 @@ const protect = async (req, res, next) => {
   try {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Token decoded successfully. User ID:', decoded.id);
     
     // Get user from database
     req.user = await User.findById(decoded.id).select('-password');
+    console.log('User found in database:', !!req.user, req.user?.email);
     
     if (!req.user) {
+      console.log('USER NOT FOUND IN DATABASE');
       return res.status(401).json({ 
         success: false, 
         error: 'User no longer exists' 
@@ -37,6 +45,7 @@ const protect = async (req, res, next) => {
     
     // Check if user is active
     if (!req.user.isActive) {
+      console.log('USER ACCOUNT IS DEACTIVATED');
       return res.status(401).json({ 
         success: false, 
         error: 'User account is deactivated' 
@@ -51,9 +60,11 @@ const protect = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    console.error('Auth middleware error:', error.message);
+    console.error('Error type:', error.name);
     
     if (error.name === 'JsonWebTokenError') {
+      console.log('JWT ERROR - Invalid token');
       return res.status(401).json({ 
         success: false, 
         error: 'Invalid token' 
@@ -61,12 +72,14 @@ const protect = async (req, res, next) => {
     }
     
     if (error.name === 'TokenExpiredError') {
+      console.log('TOKEN EXPIRED');
       return res.status(401).json({ 
         success: false, 
         error: 'Token expired, please login again' 
       });
     }
     
+    console.log('UNKNOWN ERROR - Returning 401');
     return res.status(401).json({ 
       success: false, 
       error: 'Not authorized to access this route' 

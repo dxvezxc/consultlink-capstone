@@ -42,7 +42,7 @@ router.get('/my', asyncHandler(async (req, res) => {
   res.status(200).json(appointments);
 }));
 
-// Get all appointments for a user
+// Get all appointments for a user (or all for admin)
 router.get('/', async (req, res) => {
   try {
     const userId = req.user._id;
@@ -55,11 +55,13 @@ router.get('/', async (req, res) => {
     });
 
     let query = {};
+    // Admin can see all consultations, others see only their own
     if (userRole === 'student') {
       query = { student: userId };
     } else if (userRole === 'teacher') {
       query = { teacher: userId };
     }
+    // If admin, query remains empty (gets all)
 
     console.log('Query:', query);
 

@@ -167,25 +167,31 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     setUser(null);
     setError(null);
-    
-    // Optional: Redirect to login page
-    window.location.href = '/login';
   }, []);
 
   // Update user profile
   const updateProfile = async (userData) => {
     try {
       setError(null);
-      // This would call your user update API endpoint
-      // For now, just update local state
-      const updatedUser = { ...user, ...userData };
+      console.log('AuthContext: updateProfile called with:', userData);
+      console.log('AuthContext: current user:', user);
+      
+      // Call the API to update the profile on the server
+      const response = await authAPI.updateProfile(userData);
+      console.log('AuthContext: API response:', response);
+      
+      // Update local state with the returned user data
+      const updatedUser = response.data || response;
+      console.log('AuthContext: Updated user:', updatedUser);
+      
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      return { success: true, user: updatedUser };
+      return updatedUser;
     } catch (err) {
+      console.error('AuthContext: updateProfile error:', err);
       setError(err.message || 'Failed to update profile');
-      return { success: false, error: err.message };
+      throw err;
     }
   };
 

@@ -189,4 +189,30 @@ router.delete('/subjects/:id', async (req, res) => {
   }
 });
 
+// ==========================
+// USERS MANAGEMENT
+// ==========================
+
+// READ all users (with optional role filter)
+router.get('/users', async (req, res) => {
+  try {
+    const { role } = req.query;
+    const filter = {};
+    
+    if (role) {
+      filter.role = role;
+    }
+    
+    const users = await User.find(filter)
+      .select('-password')
+      .populate('subjects', 'name code')
+      .sort({ createdAt: -1 });
+    
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;

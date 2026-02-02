@@ -10,58 +10,18 @@ const TeacherSummaryCards = ({ stats, onCardClick }) => {
       icon: <Clock size={24} />,
       color: '#f59e0b',
       bgColor: '#fffbeb',
-      change: '+2 today',
+      change: 'Awaiting approval',
       link: 'requests'
     },
     {
       id: 'today',
-      title: "Today's Consultations",
+      title: 'Today\'s Consultation',
       value: stats.todayConsultations || 0,
       icon: <Calendar size={24} />,
-      color: '#3b82f6',
-      bgColor: '#eff6ff',
-      change: 'Next in 2 hours',
-      link: 'schedule'
-    },
-    {
-      id: 'students',
-      title: 'Active Students',
-      value: stats.totalStudents || 0,
-      icon: <Users size={24} />,
       color: '#10b981',
       bgColor: '#ecfdf5',
-      change: '+3 this week',
-      link: 'students'
-    },
-    {
-      id: 'hours',
-      title: 'Weekly Hours',
-      value: `${stats.thisWeek || 0}h`,
-      icon: <Clock size={24} />,
-      color: '#8b5cf6',
-      bgColor: '#f5f3ff',
-      change: '18h scheduled',
-      link: 'availability'
-    },
-    {
-      id: 'completed',
-      title: 'Completed This Month',
-      value: '42',
-      icon: <CheckCircle size={24} />,
-      color: '#ef4444',
-      bgColor: '#fef2f2',
-      change: '↑ 12% from last month',
-      link: null
-    },
-    {
-      id: 'rating',
-      title: 'Average Rating',
-      value: '4.8',
-      icon: <TrendingUp size={24} />,
-      color: '#f59e0b',
-      bgColor: '#fffbeb',
-      change: 'Based on 24 reviews',
-      link: null
+      change: 'Scheduled today',
+      link: 'schedule'
     }
   ];
 

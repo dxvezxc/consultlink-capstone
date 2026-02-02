@@ -15,11 +15,14 @@ API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     
+    console.log('[AXIOS REQUEST] URL:', config.url);
+    console.log('[AXIOS REQUEST] Token exists:', !!token);
     if (token) {
+      console.log('[AXIOS REQUEST] Token preview:', token.substring(0, 30) + '...');
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('[AXIOS] Token attached to request:', config.url);
+      console.log('[AXIOS REQUEST] Authorization header set');
     } else {
-      console.warn('[AXIOS] No token found for request:', config.url);
+      console.warn('[AXIOS REQUEST] ⚠️ NO TOKEN FOUND IN LOCALSTORAGE FOR REQUEST:', config.url);
     }
     
     // Add timestamp to prevent caching
@@ -85,15 +88,16 @@ API.interceptors.response.use(
     if (status === 401) {
       console.error('[AXIOS] 401 Unauthorized detected');
       // Only redirect to login if we have a token (session expired case)
-      // Don't redirect for login page login attempts
+      // Don't redirect for login page login attempts or password change attempts
       const token = localStorage.getItem('token');
-      if (token && !window.location.pathname.includes('/login')) {
+      const isPasswordChange = error.config?.url?.includes('change-password');
+      if (token && !window.location.pathname.includes('/login') && !isPasswordChange) {
         console.error('[AXIOS] Clearing token and redirecting to login');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login?session=expired';
       } else {
-        console.error('[AXIOS] No token or on login page - not redirecting, just rejecting error');
+        console.error('[AXIOS] No token or on login page or password change - not redirecting, just rejecting error');
       }
     }
     

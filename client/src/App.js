@@ -12,8 +12,6 @@ import ProtectedRoute from "./components/Auth/ProtectedRoute";
 
 /* Pages */
 import Home from "./pages/Home";
-import Login from "./components/Auth/Login";
-import Register from "./components/Auth/Register";
 
 /* Dashboards */
 import StudentDashboard from "./components/Dashboard/student/StudentDashboard";
@@ -31,14 +29,11 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
-          <Navbar />
           
           <main className="container mx-auto px-4 py-8">
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
               
               {/* Protected Student Routes */}
               <Route path="/dashboard" element={

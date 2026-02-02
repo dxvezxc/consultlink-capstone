@@ -72,16 +72,8 @@ const StudentHeader = ({ user, onLogout }) => {
         </div>
 
         {/* User Profile */}
-        <div className="user-profile-dropdown">
-          <button className="user-profile-btn">
-            <div className="user-avatar-small">
-              {user?.name?.charAt(0) || 'S'}
-            </div>
-            <div className="user-info">
-              <span className="user-name">{user?.name?.split(' ')[0] || 'Student'}</span>
-              <span className="user-role">Student</span>
-            </div>
-          </button>
+        <div className="user-profile-display">
+          <span className="student-name">{user?.name || 'Student'}</span>
         </div>
       </div>
     </header>
