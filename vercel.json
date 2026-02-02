@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "public": false,
+  "buildCommand": "npm run build --prefix=client",
+  "outputDirectory": "client/build",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "env": {
+    "NODE_ENV": "production",
+    "REACT_APP_API_URL": "@react_app_api_url",
+    "ATLAS_URL": "@atlas_url"
+  },
+  "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-builds",
+      "config": {
+        "distDir": "build"
+      }
+    },
+    {
+      "src": "server/server.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": "server/**"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "client/build/index.html",
+      "status": 200
+    }
+  ],
+  "functions": {
+    "server/server.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
+}
