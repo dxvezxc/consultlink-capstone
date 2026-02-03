@@ -18,6 +18,9 @@ dotenv.config();
 
 const app = express();
 
+// CORS must be FIRST before other middleware
+app.use(cors());
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -30,7 +33,11 @@ app.use(helmet({
   },
 }));
 
-// Rate limiting
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Rate limiting (after CORS)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
@@ -45,35 +52,6 @@ const limiter = rateLimit({
   },
 });
 app.use('/api/', limiter);
-
-// CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests in development from localhost on any port
-    if (process.env.NODE_ENV === 'development') {
-      // Allow from localhost (any port) or no origin (mobile apps)
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    } else {
-      // Production: use CLIENT_URL environment variable
-      if (origin === process.env.CLIENT_URL) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
-
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging (only in development)
 if (process.env.NODE_ENV === 'development') {
