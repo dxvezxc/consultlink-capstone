@@ -36,11 +36,5 @@
       "dest": "client/build/index.html",
       "status": 200
     }
-  ],
-  "functions": {
-    "server/server.js": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  }
+  ]
 }
