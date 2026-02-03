@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "public": "client/build",
   "builds": [
     {
       "src": "api/server.js",
@@ -10,6 +11,14 @@
     {
       "src": "/api/(.*)",
       "dest": "api/server.js"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/client/build/static/$1"
+    },
+    {
+      "src": "/(.*\\..*)",
+      "dest": "/client/build/$1"
     },
     {
       "src": "/(.*)",
