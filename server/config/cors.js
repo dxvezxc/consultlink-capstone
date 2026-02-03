@@ -6,14 +6,15 @@ const cors = require('cors');
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
-      'http://localhost:3000',     // Development
-      'http://localhost:5000',      // Development
+      'http://localhost:3000',
+      'http://localhost:5000',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5000',
-      process.env.CLIENT_URL || 'https://vercel.app'  // Production (Vercel)
-    ];
+      'https://consultlink-capstone.vercel.app',
+      process.env.CLIENT_URL,
+    ].filter(Boolean);
     
-    if (!origin || allowedOrigins.some(allowed => origin.includes(allowed) || allowed.includes('vercel.app'))) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
