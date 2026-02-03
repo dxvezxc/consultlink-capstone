@@ -3,6 +3,8 @@ import axios from 'axios';
 import { LogOut, Users, BookOpen, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import ChangePasswordModal from '../../Admin/ChangePasswordModal';
+import ConfirmDeleteModal from '../../Admin/ConfirmDeleteModal';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -19,6 +21,9 @@ const AdminDashboard = () => {
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('dashboard');
+  const [editingTeacher, setEditingTeacher] = useState(null);
+  const [deletingTeacher, setDeletingTeacher] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Handle logout
   const handleLogout = () => {
@@ -114,27 +119,19 @@ const AdminDashboard = () => {
   };
 
   // Reset teacher password
-  const resetPassword = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      };
-      
-      const res = await axios.put(`/api/admin/teachers/${id}/reset-password`, {}, config);
-      setSuccess(`Password reset! New password: ${res.data.newPassword}`);
-      setTimeout(() => setSuccess(''), 10000);
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to reset password');
-    }
+  const handleResetPasswordClick = (teacher) => {
+    setEditingTeacher(teacher);
   };
 
   // Delete teacher
-  const deleteTeacher = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this teacher?')) return;
+  const handleDeleteTeacherClick = (teacher) => {
+    setDeletingTeacher(teacher);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingTeacher) return;
     
+    setDeleting(true);
     try {
       const token = localStorage.getItem('token');
       const config = {
@@ -143,12 +140,15 @@ const AdminDashboard = () => {
         }
       };
       
-      await axios.delete(`/api/admin/teachers/${id}`, config);
-      setTeachers(teachers.filter(t => t._id !== id));
+      await axios.delete(`/api/admin/teachers/${deletingTeacher._id}`, config);
+      setTeachers(teachers.filter(t => t._id !== deletingTeacher._id));
+      setDeletingTeacher(null);
       setSuccess('Teacher deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to delete teacher');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -644,13 +644,13 @@ const AdminDashboard = () => {
                       <div className="teacher-actions">
                         <button 
                           className="btn-warning" 
-                          onClick={() => resetPassword(t._id)}
+                          onClick={() => handleResetPasswordClick(t)}
                         >
                           🔑 Reset Password
                         </button>
                         <button 
                           className="btn-danger" 
-                          onClick={() => deleteTeacher(t._id)}
+                          onClick={() => handleDeleteTeacherClick(t)}
                         >
                           🗑️ Delete
                         </button>
@@ -712,6 +712,25 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+
+      {editingTeacher && (
+        <ChangePasswordModal
+          teacher={editingTeacher}
+          onClose={() => setEditingTeacher(null)}
+          onPasswordChanged={() => {
+            setEditingTeacher(null);
+          }}
+        />
+      )}
+
+      {deletingTeacher && (
+        <ConfirmDeleteModal
+          teacher={deletingTeacher}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingTeacher(null)}
+          loading={deleting}
+        />
+      )}
     </div>
   );
 };

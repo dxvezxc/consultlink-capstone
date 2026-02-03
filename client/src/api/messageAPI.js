@@ -53,7 +53,7 @@ export const getUnreadCount = async (appointmentId) => {
   }
 };
 
-// Get chat status for a consultation
+// Get chat status for a consultation with window info
 export const getChatStatus = async (appointmentId) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/status/${appointmentId}`, {

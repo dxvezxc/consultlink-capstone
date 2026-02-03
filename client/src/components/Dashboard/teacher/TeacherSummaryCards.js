@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CheckCircle, Users, TrendingUp, Calendar } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react';
 
 const TeacherSummaryCards = ({ stats, onCardClick }) => {
   const cards = [

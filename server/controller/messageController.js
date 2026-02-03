@@ -1,6 +1,38 @@
 const Message = require('../models/Message');
 const Appointment = require('../models/Appointment');
 
+// Helper function to check if messaging is allowed
+const isMessagingAllowed = (appointment) => {
+  const now = new Date();
+  const appointmentStart = new Date(appointment.dateTime);
+  const slotDuration = appointment.slotDuration || 30; // Default 30 minutes
+  const appointmentEnd = new Date(appointmentStart.getTime() + slotDuration * 60000);
+
+  // Can only message during the appointment window
+  return now >= appointmentStart && now <= appointmentEnd;
+};
+
+// Helper function to get messaging window info
+const getMessagingWindowInfo = (appointment) => {
+  const now = new Date();
+  const appointmentStart = new Date(appointment.dateTime);
+  const slotDuration = appointment.slotDuration || 30;
+  const appointmentEnd = new Date(appointmentStart.getTime() + slotDuration * 60000);
+
+  return {
+    appointmentStart,
+    appointmentEnd,
+    slotDuration,
+    status: appointment.status,
+    isCompleted: appointment.status === 'completed',
+    isCanceled: appointment.status === 'canceled',
+    isConfirmed: appointment.status === 'confirmed',
+    canMessage: appointment.status === 'confirmed' && now >= appointmentStart && now <= appointmentEnd,
+    messageUntil: appointmentEnd,
+    messageStartsAt: appointmentStart
+  };
+};
+
 // Send a message
 const sendMessage = async (req, res) => {
   try {
@@ -10,7 +42,10 @@ const sendMessage = async (req, res) => {
     // Validate appointment exists and user is part of it
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Appointment not found' 
+      });
     }
 
     // Check if sender and receiver are part of the appointment
@@ -21,12 +56,49 @@ const sendMessage = async (req, res) => {
        appointment.teacher.toString() === receiverId.toString());
 
     if (!isValidParticipant) {
-      return res.status(403).json({ message: 'Not authorized to send message in this appointment' });
+      return res.status(403).json({ 
+        success: false,
+        message: 'Not authorized to send message in this appointment' 
+      });
     }
 
-    // Check if appointment is confirmed or completed
-    if (!['confirmed', 'completed'].includes(appointment.status)) {
-      return res.status(400).json({ message: 'Messages can only be sent for confirmed or completed appointments' });
+    // Check if appointment is confirmed
+    if (appointment.status !== 'confirmed') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Messages can only be sent for confirmed appointments',
+        windowInfo: getMessagingWindowInfo(appointment)
+      });
+    }
+
+    // Check if appointment is completed
+    if (appointment.status === 'completed') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'This consultation has been completed. Messaging is no longer available.',
+        windowInfo: getMessagingWindowInfo(appointment)
+      });
+    }
+
+    // Check if messaging is within the appointment time window
+    if (!isMessagingAllowed(appointment)) {
+      const windowInfo = getMessagingWindowInfo(appointment);
+      const now = new Date();
+      
+      if (now < windowInfo.appointmentStart) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Messaging will be available during your appointment time',
+          windowInfo: windowInfo,
+          timeUntilStart: Math.ceil((windowInfo.appointmentStart - now) / 1000)
+        });
+      } else {
+        return res.status(400).json({ 
+          success: false,
+          message: 'The appointment time has ended. Messaging is no longer available.',
+          windowInfo: windowInfo
+        });
+      }
     }
 
     // Create message
@@ -45,11 +117,16 @@ const sendMessage = async (req, res) => {
     res.status(201).json({
       success: true,
       message: message,
-      msg: 'Message sent successfully'
+      msg: 'Message sent successfully',
+      windowInfo: getMessagingWindowInfo(appointment)
     });
   } catch (err) {
     console.error('Send message error:', err.message);
-    res.status(500).json({ message: 'Error sending message', error: err.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error sending message', 
+      error: err.message 
+    });
   }
 };
 
@@ -191,7 +268,10 @@ const getChatStatus = async (req, res) => {
 
     const appointment = await Appointment.findById(consultationId);
     if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Appointment not found' 
+      });
     }
 
     const isParticipant = 
@@ -199,22 +279,31 @@ const getChatStatus = async (req, res) => {
       appointment.teacher.toString() === userId.toString();
 
     if (!isParticipant) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ 
+        success: false,
+        message: 'Not authorized' 
+      });
     }
 
-    // Chat is enabled when appointment is confirmed
-    const chatEnabled = appointment.status === 'confirmed' || appointment.status === 'completed';
+    const windowInfo = getMessagingWindowInfo(appointment);
 
     res.status(200).json({
       success: true,
-      chatEnabled: chatEnabled,
+      windowInfo: windowInfo,
       appointmentStatus: appointment.status,
+      slotDuration: appointment.slotDuration || 30,
       scheduledDate: appointment.dateTime,
-      meetingLink: appointment.meetingLink
+      completedAt: appointment.completedAt,
+      canceledAt: appointment.canceledAt,
+      confirmedAt: appointment.confirmedAt
     });
   } catch (err) {
     console.error('Get chat status error:', err.message);
-    res.status(500).json({ message: 'Error fetching chat status', error: err.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching chat status', 
+      error: err.message 
+    });
   }
 };
 

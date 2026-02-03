@@ -9,9 +9,6 @@
     "dev:debug": "cross-env NODE_ENV=development nodemon --inspect server.js",
     "dev:client": "cd ../client && npm start",
     "dev:full": "concurrently --kill-others \"npm run dev\" \"npm run dev:client\"",
-    "test": "cross-env NODE_ENV=test jest --verbose --coverage",
-    "test:watch": "cross-env NODE_ENV=test jest --watch --verbose",
-    "test:e2e": "cross-env NODE_ENV=test jest --testPathPattern=e2e --verbose",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
     "format": "prettier --write \"**/*.js\"",
@@ -19,11 +16,9 @@
     "security-check": "npm audit",
     "seed": "node seed.js",
     "seed:dev": "cross-env NODE_ENV=development node seed.js",
-    "seed:test": "cross-env NODE_ENV=test node seed.js",
     "docker:build": "docker build -t consultation-system-api .",
     "docker:run": "docker run -p 5000:5000 consultation-system-api",
-    "docs:generate": "apidoc -i routes -o docs/api",
-    "typecheck": "tsc --noEmit"
+    "docs:generate": "apidoc -i routes -o docs/api"
   },
   "keywords": [
     "consultation",
@@ -53,38 +48,18 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.14",
     "@types/node": "^20.19.30",
     "concurrently": "^8.2.2",
     "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jest": "^29.12.1",
-    "jest": "^29.7.0",
     "nodemon": "^3.1.11",
-    "prettier": "^3.8.1",
-    "supertest": "^7.2.2"
+    "prettier": "^3.8.1"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "coveragePathIgnorePatterns": [
-      "/node_modules/",
-      "/tests/",
-      "/coverage/"
-    ],
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!**/node_modules/**",
-      "!**/coverage/**",
-      "!**/tests/**",
-      "!jest.config.js",
-      "!server.js"
-    ]
   },
   "prettier": {
     "semi": true,

@@ -8,6 +8,8 @@ export const availabilityAPI = {
   createAvailability: (data) => API.post('/availability', data),
   
   // Update availability slot
+  // Note: The API returns { success: true, data: availability }
+  // axios interceptor unwraps it to just { success: true, data: availability }
   updateAvailability: (id, data) => API.put(`/availability/${id}`, data),
   
   // Delete availability slot

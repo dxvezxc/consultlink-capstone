@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, User, ChevronLeft, ChevronRight, Video, AlertCircle } from 'lucide-react';
 import consultationsAPI from '../../../api/consultations';
 import { availabilityAPI } from '../../../api/availability';
 import '../../../styles/teacherSchedule.css';
@@ -9,7 +9,6 @@ const TeacherSchedule = () => {
   const [viewMode, setViewMode] = useState('week');
   const [appointments, setAppointments] = useState([]);
   const [availability, setAvailability] = useState([]);
-  const [loading, setLoading] = useState(true);
   
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -32,7 +31,6 @@ const TeacherSchedule = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
         
         // Load appointments for this teacher
         const appointmentsRes = await consultationsAPI.getUserConsultations({});
@@ -56,8 +54,6 @@ const TeacherSchedule = () => {
         console.error('Error loading schedule data:', error);
         setAppointments([]);
         setAvailability([]);
-      } finally {
-        setLoading(false);
       }
     };
     
@@ -129,50 +125,6 @@ const TeacherSchedule = () => {
             <button className="nav-btn" onClick={handleNextWeek} title="Next week">
               <ChevronRight size={20} />
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Week Overview Stats */}
-      <div className="week-stats">
-        <div className="stat-item">
-          <div className="stat-icon confirmed">
-            <CheckCircle size={20} />
-          </div>
-          <div className="stat-content">
-            <span className="stat-number">
-              {appointments.filter(a => a.status === 'confirmed').length}
-            </span>
-            <span className="stat-text">This Week</span>
-          </div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-icon pending">
-            <AlertCircle size={20} />
-          </div>
-          <div className="stat-content">
-            <span className="stat-number">
-              {appointments.filter(a => a.status === 'pending').length}
-            </span>
-            <span className="stat-text">Pending</span>
-          </div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-icon">
-            <Clock size={20} />
-          </div>
-          <div className="stat-content">
-            <span className="stat-number">
-              {availability.length > 0 
-                ? `${availability.reduce((sum, slot) => {
-                    const [startH] = slot.startTime.split(':').map(Number);
-                    const [endH] = slot.endTime.split(':').map(Number);
-                    return sum + (endH - startH);
-                  }, 0)}h`
-                : '0h'
-              }
-            </span>
-            <span className="stat-text">Weekly Hours</span>
           </div>
         </div>
       </div>

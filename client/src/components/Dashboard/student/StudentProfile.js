@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../../context/AuthContext';
 import { authAPI } from '../../../api/auth';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -25,16 +24,12 @@ const StudentProfile = ({ user, onBack, stats }) => {
       setPasswordError(null);
       setPasswordSuccess(null);
 
-      console.log('StudentProfile: Changing password');
-      console.log('StudentProfile: Token exists:', !!localStorage.getItem('token'));
-
       await authAPI.changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
         confirmPassword: passwordData.confirmPassword
       });
 
-      console.log('StudentProfile: Password changed successfully');
       setPasswordSuccess('Password changed successfully!');
       setPasswordData({
         currentPassword: '',

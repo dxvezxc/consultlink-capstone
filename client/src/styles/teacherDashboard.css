@@ -20,6 +20,25 @@
   overflow-y: auto;
 }
 
+/* Teacher Name Header - Top of Sidebar */
+.teacher-name-header {
+  text-align: center;
+  padding: 20px 10px 25px 10px;
+  border-bottom: 2px solid #334155;
+  margin-bottom: 20px;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.sidebar-teacher-name {
+  font-size: 22px;
+  font-weight: 900;
+  margin: 0;
+  color: #ffffff;
+  word-wrap: break-word;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+}
+
 .teacher-profile-section {
   text-align: center;
   padding-bottom: 15px;
@@ -570,8 +589,22 @@
 .appointment-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 15px;
+  gap: 12px;
+}
+
+.appointment-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.header-action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .student-info {
@@ -685,6 +718,21 @@
   border: none;
 }
 
+.header-action-buttons .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
 .approve-btn {
   background: #10b981;
   color: white;
@@ -719,6 +767,15 @@
 
 .message-btn:hover {
   background: #7c3aed;
+}
+
+.complete-btn {
+  background: #06b6d4;
+  color: white;
+}
+
+.complete-btn:hover {
+  background: #0891b2;
 }
 
 .more-btn {

@@ -115,13 +115,20 @@ router.delete('/:id/subjects/:subjectId', protect, async (req, res) => {
   }
 });
 
+// @desc    Change password
+// @route   PUT /api/users/change-password
+// @access  Private
+router.put('/change-password', protect, asyncHandler(async (req, res) => {
+  const userController = require('../controller/userController');
+  return userController.changePassword(req, res);
+}));
+
 // ====== GENERIC ROUTES (Must come after specific routes) ======
 
 // @desc    Update user profile (current user)
 // @route   PUT /api/users/profile
 // @access  Private
 router.put('/profile', protect, asyncHandler(async (req, res) => {
-  console.log('PUT /profile route: req.user is:', req.user);
   const userController = require('../controller/userController');
   return userController.updateProfile(req, res);
 }));
@@ -238,17 +245,6 @@ router.put('/:id', protect, async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
-
-// @desc    Change password
-// @route   PUT /api/users/change-password
-// @access  Private
-router.put('/change-password', protect, asyncHandler(async (req, res) => {
-  console.log('=== PUT /change-password route ===');
-  console.log('req.user:', req.user);
-  console.log('req.body:', req.body);
-  const userController = require('../controller/userController');
-  return userController.changePassword(req, res);
-}));
 
 // @desc    Delete user
 // @route   DELETE /api/users/:id

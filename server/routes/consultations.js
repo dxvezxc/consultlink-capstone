@@ -29,7 +29,7 @@ router.get('/my', asyncHandler(async (req, res) => {
   }
 
   const appointments = await Appointment.find(query)
-    .populate('student', 'name email')
+    .populate('student', 'name email studentID')
     .populate('teacher', 'name email')
     .populate('subject', 'name code')
     .sort({ dateTime: -1 });
@@ -66,7 +66,7 @@ router.get('/', async (req, res) => {
     console.log('Query:', query);
 
     const appointments = await Appointment.find(query)
-      .populate('student', 'name email')
+      .populate('student', 'name email studentID')
       .populate('teacher', 'name email')
       .populate('subject', 'name code')
       .sort({ dateTime: -1 });
@@ -95,6 +95,48 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get booked time slots for a teacher on a specific date
+router.get('/booked/:teacherId/:date', async (req, res) => {
+  try {
+    const { teacherId, date } = req.params;
+    
+    // Parse the date
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Find all non-canceled appointments for this teacher on this date
+    const bookedAppointments = await Appointment.find({
+      teacher: teacherId,
+      dateTime: {
+        $gte: startDate,
+        $lte: endDate
+      },
+      status: { $ne: 'canceled' }
+    }).select('dateTime');
+
+    // Extract the booked times
+    const bookedTimes = bookedAppointments.map(apt => {
+      const date = new Date(apt.dateTime);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    });
+
+    res.status(200).json({
+      success: true,
+      date: date,
+      bookedTimes: bookedTimes,
+      count: bookedTimes.length
+    });
+  } catch (err) {
+    console.error('Error fetching booked slots:', err.message);
+    res.status(500).json({ success: false, error: 'Error fetching booked slots', message: err.message });
+  }
+});
+
 // Get single consultation
 router.get('/:id', async (req, res) => {
   try {
@@ -102,7 +144,7 @@ router.get('/:id', async (req, res) => {
     const userId = req.user._id;
 
     const appointment = await Appointment.findById(id)
-      .populate('student', 'name email')
+      .populate('student', 'name email studentID')
       .populate('teacher', 'name email')
       .populate('subject', 'name code');
 
@@ -266,11 +308,21 @@ router.put('/:id/confirm', async (req, res) => {
       return res.status(403).json({ success: false, error: 'Not authorized to confirm this appointment' });
     }
 
+    // Fetch availability slot to get duration
+    const availability = await Availability.findOne({
+      teacher: appointment.teacher,
+      subject: appointment.subject,
+      dayOfWeek: appointment.dateTime.getDay()
+    });
+
     appointment.status = 'confirmed';
     appointment.confirmedAt = new Date();
+    if (availability) {
+      appointment.slotDuration = availability.slotDuration;
+    }
 
     await appointment.save();
-    await appointment.populate('student', 'name email');
+    await appointment.populate('student', 'name email studentID');
     await appointment.populate('teacher', 'name email');
 
     res.status(200).json({
@@ -281,6 +333,41 @@ router.put('/:id/confirm', async (req, res) => {
   } catch (err) {
     console.error('Confirm appointment error:', err.message);
     res.status(500).json({ success: false, error: 'Error confirming appointment', message: err.message });
+  }
+});
+
+// Complete appointment (teacher)
+router.put('/:id/complete', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ success: false, error: 'Appointment not found' });
+    }
+
+    // Only teacher can mark as complete
+    if (appointment.teacher.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, error: 'Not authorized to complete this appointment' });
+    }
+
+    appointment.status = 'completed';
+    appointment.completedAt = new Date();
+
+    await appointment.save();
+    await appointment.populate('student', 'name email studentID');
+    await appointment.populate('teacher', 'name email');
+    await appointment.populate('subject', 'name');
+
+    res.status(200).json({
+      success: true,
+      consultation: appointment,
+      message: 'Appointment completed'
+    });
+  } catch (err) {
+    console.error('Complete appointment error:', err.message);
+    res.status(500).json({ success: false, error: 'Error completing appointment', message: err.message });
   }
 });
 
@@ -306,7 +393,7 @@ router.put('/:id/cancel', async (req, res) => {
     appointment.canceledAt = new Date();
 
     await appointment.save();
-    await appointment.populate('student', 'name email');
+    await appointment.populate('student', 'name email studentID');
 
     res.status(200).json({
       success: true,
@@ -316,39 +403,6 @@ router.put('/:id/cancel', async (req, res) => {
   } catch (err) {
     console.error('Cancel appointment error:', err.message);
     res.status(500).json({ success: false, error: 'Error canceling appointment', message: err.message });
-  }
-});
-
-// Complete appointment (teacher)
-router.put('/:id/complete', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user._id;
-    const { feedback } = req.body;
-
-    const appointment = await Appointment.findById(id);
-    if (!appointment) {
-      return res.status(404).json({ success: false, error: 'Appointment not found' });
-    }
-
-    // Only teacher can complete
-    if (appointment.teacher.toString() !== userId.toString()) {
-      return res.status(403).json({ success: false, error: 'Not authorized' });
-    }
-
-    appointment.status = 'completed';
-    appointment.completedAt = new Date();
-    appointment.feedback = feedback || '';
-    await appointment.save();
-
-    res.status(200).json({
-      success: true,
-      consultation: appointment,
-      message: 'Appointment marked as completed'
-    });
-  } catch (err) {
-    console.error('Complete appointment error:', err.message);
-    res.status(500).json({ success: false, error: 'Error completing appointment', message: err.message });
   }
 });
 

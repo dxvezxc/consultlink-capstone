@@ -8,7 +8,7 @@ const Subject = require('../models/Subject');
 // Create availability slot
 exports.createAvailability = async (req, res) => {
   try {
-    const { subjectId, dayOfWeek, startTime, endTime, slotDuration, validUntil } = req.body;
+    const { subjectId, dayOfWeek, startTime, endTime, slotDuration, maxCapacity, validUntil } = req.body;
 
     // Validate required fields
     if (dayOfWeek === undefined || !startTime || !endTime) {
@@ -42,6 +42,7 @@ exports.createAvailability = async (req, res) => {
       startTime,
       endTime,
       slotDuration: slotDuration || 30,
+      maxCapacity: maxCapacity || 1,
       validUntil: validUntil || null
     });
 
@@ -137,12 +138,13 @@ exports.getTeacherAvailabilityBySubject = async (req, res) => {
 // Update availability slot
 exports.updateAvailability = async (req, res) => {
   try {
-    const { startTime, endTime, slotDuration, validUntil } = req.body;
+    const { startTime, endTime, slotDuration, maxCapacity, validUntil } = req.body;
     const updates = {};
 
     if (startTime) updates.startTime = startTime;
     if (endTime) updates.endTime = endTime;
     if (slotDuration) updates.slotDuration = slotDuration;
+    if (maxCapacity) updates.maxCapacity = maxCapacity;
     if (validUntil) updates.validUntil = validUntil;
 
     const availability = await Availability.findByIdAndUpdate(

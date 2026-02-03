@@ -6,7 +6,6 @@ import consultationsAPI from '../../../api/consultations';
 
 // Import Teacher Components
 import TeacherSidebar from '../teacher/TeacherSidebar';
-import TeacherHeader from '../teacher/TeacherHeader';
 import TeacherSummaryCards from '../teacher/TeacherSummaryCards';
 import TeacherAppointments from '../teacher/TeacherAppointments';
 import TeacherAvailability from '../teacher/TeacherAvailability';
@@ -45,8 +44,6 @@ const TeacherDashboard = () => {
       try {
         setLoading(true);
         
-        console.log('TeacherDashboard: Loading initial data...');
-        
         // Load real data from API
         const [slotsRes, appointmentsRes] = await Promise.all([
           availabilityAPI.getMyAvailability().catch(err => {
@@ -59,9 +56,6 @@ const TeacherDashboard = () => {
           })
         ]);
         
-        console.log('TeacherDashboard: slotsRes:', slotsRes);
-        console.log('TeacherDashboard: appointmentsRes:', appointmentsRes);
-        
         // Handle slots - axios interceptor unwraps response.data, so slotsRes might be array or object
         const slots = Array.isArray(slotsRes) 
           ? slotsRes 
@@ -72,8 +66,6 @@ const TeacherDashboard = () => {
         const appointments = Array.isArray(appointmentsRes)
           ? appointmentsRes
           : (appointmentsRes?.consultations || []);
-        
-        console.log('TeacherDashboard: appointments parsed:', appointments);
         
         setAvailabilitySlots(slots);
         setAppointmentRequests(appointments);
@@ -109,8 +101,6 @@ const TeacherDashboard = () => {
   // Handle appointment actions
   const handleAppointmentAction = (appointmentId, action) => {
     // TODO: Implement API call
-    console.log(`${action} appointment:`, appointmentId);
-    
     // Update local state
     setAppointmentRequests(prev => 
       prev.filter(app => app._id !== appointmentId)
@@ -167,12 +157,6 @@ const TeacherDashboard = () => {
       />
 
       <div className="teacher-main">
-        {/* Header with Search & Notifications */}
-        <TeacherHeader 
-          user={user}
-          onLogout={handleLogout}
-        />
-
         {/* Error Display */}
         {error && (
           <div className="dashboard-error">

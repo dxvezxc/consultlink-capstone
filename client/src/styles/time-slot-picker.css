@@ -68,6 +68,39 @@
   opacity: 0.6;
 }
 
+.slot-button.booked {
+  border-color: #ff6b6b;
+  background: #ffe0e0;
+  color: #c92a2a;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.slot-button.booked:hover {
+  border-color: #ff6b6b;
+  background: #ffd9d9;
+  transform: none;
+}
+
+.slot-button.booked::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.booked-label {
+  display: block;
+  font-size: 0.65em;
+  font-weight: 700;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
 .time-slot-picker p {
   text-align: center;
   color: #999;

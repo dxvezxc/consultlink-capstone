@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Bell, HelpCircle, Calendar } from 'lucide-react';
+import { Bell, HelpCircle, Calendar } from 'lucide-react';
 
 const TeacherHeader = ({ user, onLogout }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [notifications] = useState([
     { id: 1, message: 'New consultation request from John Doe', time: '10 min ago', read: false },
     { id: 2, message: 'Your availability for tomorrow has been updated', time: '1 hour ago', read: true },
@@ -13,18 +12,6 @@ const TeacherHeader = ({ user, onLogout }) => {
 
   return (
     <header className="teacher-header">
-      {/* Search Bar */}
-      <div className="header-search">
-        <Search size={18} className="search-icon" />
-        <input
-          type="text"
-          placeholder="Search students, appointments, or subjects..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
-        />
-      </div>
-
       {/* Header Actions */}
       <div className="header-actions">
         {/* Calendar Button */}

@@ -1,0 +1,117 @@
+/* Confirm Delete Modal Styles */
+
+.confirm-modal {
+  max-width: 450px;
+}
+
+.warning-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50px;
+  height: 50px;
+  background-color: #fef2f2;
+  border-radius: 50%;
+  color: #dc2626;
+  font-size: 1.5rem;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #333;
+  flex: 1;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.warning-text {
+  font-size: 1rem;
+  color: #333;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.delete-consequences {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 10px 0 15px 0;
+  padding: 10px;
+  background-color: #fef2f2;
+  border-left: 4px solid #dc2626;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.teacher-details {
+  background-color: #f9fafb;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-top: 15px;
+}
+
+.teacher-details p {
+  margin: 8px 0;
+  color: #333;
+}
+
+.teacher-details strong {
+  color: #000;
+  font-weight: 600;
+}
+
+/* Override footer styling for delete modal */
+.confirm-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.confirm-modal .btn-cancel,
+.confirm-modal .btn-delete {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-modal .btn-cancel {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.confirm-modal .btn-cancel:hover:not(:disabled) {
+  background-color: #d0d0d0;
+}
+
+.confirm-modal .btn-delete {
+  background-color: #dc2626;
+  color: white;
+}
+
+.confirm-modal .btn-delete:hover:not(:disabled) {
+  background-color: #b91c1c;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.confirm-modal button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

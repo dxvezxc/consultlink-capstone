@@ -4,52 +4,18 @@ const User = require('../models/User');
 const asyncHandler = require('../utils/asyncHandler');
 const router = express.Router();
 
-// Debug endpoint - shows all teachers and their subjects
-router.get('/debug/teachers-subjects', async (req, res) => {
-  try {
-    const teachers = await User.find({ role: 'teacher' })
-      .select('name email studentID subjects _id');
-    
-    console.log('=== DEBUG: Teachers and Subjects ===');
-    console.log('Total teachers:', teachers.length);
-    teachers.forEach(teacher => {
-      console.log(`Teacher: ${teacher.name} (${teacher._id}), Subjects count: ${teacher.subjects?.length || 0}`);
-      if (teacher.subjects?.length > 0) {
-        console.log(`  Subjects:`, teacher.subjects);
-      }
-    });
-    
-    res.json({
-      totalTeachers: teachers.length,
-      teachers: teachers.map(t => ({
-        _id: t._id,
-        name: t.name,
-        subjects: t.subjects
-      }))
-    });
-  } catch (err) {
-    console.error('Debug error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // GET all subjects with teachers who teach them
 router.get('/', async (req, res) => {
   try {
     const subjects = await Subject.find();
-    console.log('Total subjects found:', subjects.length);
     
     // For each subject, find teachers who have this subject in their subjects array
     const subjectsWithTeachers = await Promise.all(
       subjects.map(async (subject) => {
-        console.log(`Finding teachers for subject: ${subject.name} (${subject._id})`);
-        
         const teachers = await User.find(
           { subjects: subject._id, role: 'teacher' },
           'name studentID role email _id'
         );
-        
-        console.log(`Found ${teachers.length} teachers for ${subject.name}`);
         
         return {
           ...subject.toObject(),
@@ -58,10 +24,8 @@ router.get('/', async (req, res) => {
       })
     );
     
-    console.log('Returning subjects with teachers:', subjectsWithTeachers.length);
     res.json(subjectsWithTeachers);
   } catch (err) {
-    console.error('Get subjects error:', err.message);
     res.status(500).json({ msg: err.message || 'Server error' });
   }
 });
@@ -74,22 +38,17 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ msg: 'Subject not found' });
     }
     
-    console.log(`Finding teachers for subject: ${subject.name} (${subject._id})`);
-    
     // Find teachers who have this subject
     const teachers = await User.find(
       { subjects: subject._id, role: 'teacher' },
       'name studentID role email _id'
     );
     
-    console.log(`Found ${teachers.length} teachers for ${subject.name}`);
-    
     res.json({
       ...subject.toObject(),
       consultants: teachers
     });
   } catch (err) {
-    console.error('Get subject error:', err.message);
     res.status(500).json({ msg: err.message || 'Server error' });
   }
 });

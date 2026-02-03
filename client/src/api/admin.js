@@ -64,6 +64,50 @@ const adminAPI = {
     }
   },
 
+  // Get all teachers
+  getTeachers: async () => {
+    try {
+      const response = await axiosInstance.get('/admin/teachers');
+      return response;  // Already unwrapped by interceptor
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+      throw error;
+    }
+  },
+
+  // Delete teacher
+  deleteTeacher: async (teacherId) => {
+    try {
+      const response = await axiosInstance.delete(`/admin/teachers/${teacherId}`);
+      return response;  // Already unwrapped by interceptor
+    } catch (error) {
+      console.error('Error deleting teacher:', error);
+      throw error;
+    }
+  },
+
+  // Reset teacher password (generates new secure password)
+  resetTeacherPassword: async (teacherId) => {
+    try {
+      const response = await axiosInstance.put(`/admin/teachers/${teacherId}/reset-password`);
+      return response;  // Already unwrapped by interceptor
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  },
+
+  // Update teacher
+  updateTeacher: async (teacherId, data) => {
+    try {
+      const response = await axiosInstance.put(`/admin/teachers/${teacherId}`, data);
+      return response;  // Already unwrapped by interceptor
+    } catch (error) {
+      console.error('Error updating teacher:', error);
+      throw error;
+    }
+  },
+
   // Get all consultations
   getAllConsultations: async (filters = {}) => {
     try {

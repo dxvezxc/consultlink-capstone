@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { subjectsAPI } from '../../../api/subjects';
 import { authAPI } from '../../../api/auth';
-import { Edit, Save, X, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Edit, Save, X, Eye, EyeOff } from 'lucide-react';
 
 const TeacherProfile = ({ user, onBack, onProfileUpdate }) => {
   const { updateProfile } = useAuth();

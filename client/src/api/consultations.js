@@ -126,6 +126,18 @@ const consultationsAPI = {
       console.error('Error fetching available slots:', error);
       throw error;
     }
+  },
+
+  // Get booked time slots for a teacher on a specific date
+  getBookedSlots: async (teacherId, date) => {
+    try {
+      const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+      const response = await axiosInstance.get(`/consultations/booked/${teacherId}/${dateStr}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching booked slots:', error);
+      throw error;
+    }
   }
 };
 

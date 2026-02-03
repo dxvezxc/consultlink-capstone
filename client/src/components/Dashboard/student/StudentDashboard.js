@@ -463,10 +463,6 @@ const StudentDashboard = () => {
                       <p className="consultant-subjects">
                         {consultant.subjects?.map(s => typeof s === 'string' ? s : s.name).join(', ') || 'General'}
                       </p>
-                      <div className="consultant-rating">
-                        <span className="rating-stars">★★★★☆</span>
-                        <span className="rating-text">4.2/5</span>
-                      </div>
                     </div>
                     <div className="consultant-action">
                       <button className="select-btn">Select →</button>

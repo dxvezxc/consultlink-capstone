@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X, Loader } from 'lucide-react';
-import { getMessages, sendMessage } from '../../api/messageAPI';
+import { Send, X, Loader, Clock, AlertCircle } from 'lucide-react';
+import { getMessages, sendMessage, getChatStatus } from '../../api/messageAPI';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/chatbox.css';
 
@@ -11,14 +11,28 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  const [windowInfo, setWindowInfo] = useState(null);
+  const [canMessage, setCanMessage] = useState(false);
+  const [messageReason, setMessageReason] = useState('');
   const messagesEndRef = useRef(null);
+  const windowCheckInterval = useRef(null);
 
-  // Load messages on mount
+  // Load messages and window status on mount
   useEffect(() => {
     loadMessages();
+    loadWindowStatus();
+    
+    // Check window status every 5 seconds
+    windowCheckInterval.current = setInterval(loadWindowStatus, 5000);
+    
     // Poll for new messages every 2 seconds
-    const interval = setInterval(loadMessages, 2000);
-    return () => clearInterval(interval);
+    const messageInterval = setInterval(loadMessages, 2000);
+    
+    return () => {
+      clearInterval(messageInterval);
+      clearInterval(windowCheckInterval.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointment._id]);
 
   // Scroll to bottom when messages change
@@ -28,6 +42,42 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadWindowStatus = async () => {
+    try {
+      const status = await getChatStatus(appointment._id);
+      setWindowInfo(status.windowInfo);
+      
+      const now = new Date();
+      const appointmentStart = new Date(status.windowInfo.appointmentStart);
+      const appointmentEnd = new Date(status.windowInfo.messageUntil);
+      
+      // Can message if confirmed and within time window
+      const isWithinWindow = now >= appointmentStart && now <= appointmentEnd;
+      const isConfirmed = status.windowInfo.isConfirmed;
+      const isCompleted = status.windowInfo.isCompleted;
+      
+      if (isCompleted) {
+        setCanMessage(false);
+        setMessageReason('completed');
+      } else if (!isConfirmed) {
+        setCanMessage(false);
+        setMessageReason('not_confirmed');
+      } else if (!isWithinWindow) {
+        setCanMessage(false);
+        if (now < appointmentStart) {
+          setMessageReason('not_started');
+        } else {
+          setMessageReason('ended');
+        }
+      } else {
+        setCanMessage(true);
+        setMessageReason('');
+      }
+    } catch (err) {
+      console.error('Error loading window status:', err);
+    }
   };
 
   const loadMessages = async () => {
@@ -44,10 +94,38 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
     }
   };
 
+  const formatTimeWindow = () => {
+    if (!windowInfo) return '';
+    const start = new Date(windowInfo.appointmentStart);
+    const end = new Date(windowInfo.messageUntil);
+    return `${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  const getMessageReasonText = () => {
+    switch (messageReason) {
+      case 'completed':
+        return '✓ Consultation completed. Messages are no longer available.';
+      case 'not_confirmed':
+        return '⏳ Waiting for teacher to confirm the appointment before messaging.';
+      case 'not_started':
+        return `⏱ Messaging available during your appointment time (${formatTimeWindow()}).`;
+      case 'ended':
+        return '✓ Consultation time ended. Messaging is no longer available.';
+      default:
+        return '';
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
     if (!newMessage.trim()) {
+      return;
+    }
+
+    // Final check before sending
+    if (!canMessage) {
+      setError(getMessageReasonText());
       return;
     }
 
@@ -64,9 +142,14 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
       
       setNewMessage('');
       await loadMessages();
+      await loadWindowStatus();
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message. Please try again.');
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Failed to send message. Please try again.');
+      }
     } finally {
       setSending(false);
     }
@@ -111,6 +194,13 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
         <div className="chatbox-header-info">
           <h3>Chat with {otherUser.name || otherUser.studentID}</h3>
           <p className="chatbox-subject">{appointment.subject?.name || 'Consultation'}</p>
+          {windowInfo && (
+            <p className="chatbox-time-window">
+              <Clock size={14} />
+              Duration: {windowInfo.slotDuration} min
+              {canMessage && ` | Active: ${formatTimeWindow()}`}
+            </p>
+          )}
         </div>
         <button className="chatbox-close" onClick={onClose} title="Close chat">
           <X size={20} />
@@ -127,6 +217,7 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
         ) : messages.length === 0 ? (
           <div className="chatbox-empty">
             <p>No messages yet. Start the conversation!</p>
+            {canMessage && <p className="hint-text">💬 Messaging is available during your appointment time</p>}
           </div>
         ) : (
           <div className="messages-container">
@@ -158,6 +249,14 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
         )}
       </div>
 
+      {/* Messaging Window Status */}
+      {windowInfo && !canMessage && (
+        <div className={`chatbox-status chatbox-status-${messageReason}`}>
+          <AlertCircle size={16} />
+          <p>{getMessageReasonText()}</p>
+        </div>
+      )}
+
       {/* Error Message */}
       {error && (
         <div className="chatbox-error">
@@ -166,28 +265,55 @@ const ChatBox = ({ appointment, otherUser, onClose }) => {
       )}
 
       {/* Message Input */}
-      <form className="chatbox-input-form" onSubmit={handleSendMessage}>
-        <input
-          type="text"
-          placeholder="Type your message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          disabled={sending}
-          className="chatbox-input"
-        />
-        <button
-          type="submit"
-          disabled={sending || !newMessage.trim()}
-          className="chatbox-send-btn"
-          title="Send message"
-        >
-          {sending ? (
-            <Loader size={18} className="spinner" />
-          ) : (
+      {canMessage ? (
+        <form className="chatbox-input-form chatbox-input-active" onSubmit={handleSendMessage}>
+          <input
+            type="text"
+            placeholder="Type your message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            disabled={sending}
+            className="chatbox-input"
+          />
+          <button
+            type="submit"
+            disabled={sending || !newMessage.trim()}
+            className="chatbox-send-btn"
+            title="Send message"
+          >
+            {sending ? (
+              <Loader size={18} className="spinner" />
+            ) : (
+              <Send size={18} />
+            )}
+          </button>
+        </form>
+      ) : (
+        <div className="chatbox-input-form chatbox-input-disabled">
+          <input
+            type="text"
+            placeholder={
+              messageReason === 'completed'
+                ? 'Consultation completed'
+                : messageReason === 'not_confirmed'
+                ? 'Waiting for confirmation'
+                : messageReason === 'not_started'
+                ? `Messaging available at ${windowInfo ? new Date(windowInfo.appointmentStart).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}`
+                : 'Consultation time ended'
+            }
+            disabled={true}
+            className="chatbox-input"
+          />
+          <button
+            type="button"
+            disabled={true}
+            className="chatbox-send-btn"
+            title="Messaging not available"
+          >
             <Send size={18} />
-          )}
-        </button>
-      </form>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

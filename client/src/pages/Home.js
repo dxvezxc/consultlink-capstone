@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import "./Home.css";
 
 const Home = () => {
-  const { user, login, register, error, clearError, loading } = useAuth();
+  const { user, login, register, error, loading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("login");
 

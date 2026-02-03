@@ -55,6 +55,11 @@ const appointmentSchema = new mongoose.Schema({
   canceledAt: {
     type: Date,
     default: null
+  },
+  slotDuration: {
+    type: Number,
+    default: 30,
+    min: 15
   }
 }, { timestamps: true });
 

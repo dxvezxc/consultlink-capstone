@@ -47,17 +47,19 @@ const validateAppointmentTime = async (teacherId, subjectId, appointmentDateTime
     dateTime: {
       $gte: new Date(appointmentDateTime),
       $lt: new Date(new Date(appointmentDateTime).getTime() + availabilitySlot.slotDuration * 60000)
-    }
+    },
+    status: { $ne: 'canceled' } // Don't count canceled appointments
   });
 
+  // Check if slot is fully booked (maxCapacity is now enforced - default 1)
   if (existingAppointment) {
     return {
       valid: false,
-      message: 'This time slot is already booked'
+      message: 'This time slot is already booked. Each slot can accommodate only 1 student.'
     };
   }
 
-  return { valid: true };
+  return { valid: true, availabilitySlot };
 };
 
 // Create consultation (now using Appointment model)

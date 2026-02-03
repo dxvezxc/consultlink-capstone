@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/Layout/DashboardLayout';
+import AdminSidebar from '../components/Admin/AdminSidebar';
+import TeachersCardView from '../components/Admin/TeachersCardView';
 import adminAPI from '../api/admin';
 import '../styles/admin.css';
 
@@ -11,6 +13,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeSection, setActiveSection] = useState('dashboard');
 
   useEffect(() => {
     fetchStats();
@@ -38,7 +41,25 @@ export default function AdminPage() {
     }
   };
 
+  const handleNavigate = (section) => {
+    setActiveSection(section);
+  };
+
   if (loading) return <div>Loading...</div>;
+
+  // If teachers section is active, show teachers card view
+  if (activeSection === 'teachers') {
+    return (
+      <DashboardLayout>
+        <div className="admin-page-layout">
+          <AdminSidebar onNavigate={handleNavigate} activeSection={activeSection} />
+          <div className="admin-content">
+            <TeachersCardView />
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   // Separate users into teachers and students
   const teachers = users.filter(u => u.role === 'teacher');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Mail, Phone, Star, MessageSquare, Video, Trash2, Search } from 'lucide-react';
+import { Users, Mail, Phone, MessageSquare, Video, Trash2, Search } from 'lucide-react';
 import consultationsAPI from '../../../api/consultations';
 import '../../../styles/teacherViews.css';
 
@@ -29,7 +29,6 @@ const TeacherStudents = () => {
               phone: apt.student.phone || 'N/A',
               studentID: apt.student.studentID,
               status: apt.student.isActive ? 'active' : 'inactive',
-              rating: 4.5,
               totalSessions: appointments.filter(a => a.student._id === apt.student._id).length,
               lastSession: appointments.find(a => a.student._id === apt.student._id)?.dateTime || 'N/A'
             });
@@ -81,15 +80,6 @@ const TeacherStudents = () => {
             <div>
               <span className="stat-num">{students.length}</span>
               <span className="stat-label">Total Students</span>
-            </div>
-          </div>
-          <div className="stat-box">
-            <Star size={20} />
-            <div>
-              <span className="stat-num">
-                {(students.reduce((sum, s) => sum + s.rating, 0) / students.length).toFixed(1)}
-              </span>
-              <span className="stat-label">Avg Rating</span>
             </div>
           </div>
         </div>
@@ -164,10 +154,6 @@ const TeacherStudents = () => {
                   </div>
 
                   <div className="student-stats">
-                    <div className="stat-item">
-                      <Star size={14} />
-                      <span>{student.rating}/5</span>
-                    </div>
                     <div className="stat-item">
                       <Video size={14} />
                       <span>{student.totalSessions} sessions</span>

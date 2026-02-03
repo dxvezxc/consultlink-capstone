@@ -87,7 +87,7 @@ router.get('/teacher/:teacherId', async (req, res) => {
 router.get('/me', protect, authorize('teacher'), async (req, res) => {
   try {
     const availability = await Availability.find({ 
-      teacher: req.user.id 
+      teacher: req.user._id 
     }).populate('subject', 'name code description')
       .sort({ dayOfWeek: 1, startTime: 1 });
     
@@ -116,9 +116,17 @@ router.post('/', protect, authorize('teacher'), async (req, res) => {
         error: 'Please provide subject, dayOfWeek, startTime, and endTime' 
       });
     }
+
+    // Validate end time is after start time
+    if (endTime <= startTime) {
+      return res.status(400).json({
+        success: false,
+        error: 'End time must be after start time'
+      });
+    }
     
     const availabilityData = {
-      teacher: req.user.id,
+      teacher: req.user._id,
       subject,
       dayOfWeek,
       startTime,
@@ -142,6 +150,17 @@ router.post('/', protect, authorize('teacher'), async (req, res) => {
     });
   } catch (err) {
     console.error('Create availability error:', err);
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ 
+        success: false, 
+        error: messages.join(', ')
+      });
+    }
     
     // Handle duplicate key error
     if (err.code === 11000) {
@@ -151,7 +170,15 @@ router.post('/', protect, authorize('teacher'), async (req, res) => {
       });
     }
     
-    res.status(500).json({ success: false, error: 'Server error' });
+    // Handle custom validation errors
+    if (err.message && err.message.includes('End time must be after start time')) {
+      return res.status(400).json({
+        success: false,
+        error: 'End time must be after start time'
+      });
+    }
+    
+    res.status(500).json({ success: false, error: err.message || 'Server error' });
   }
 });
 
@@ -160,6 +187,9 @@ router.post('/', protect, authorize('teacher'), async (req, res) => {
 // @access  Private/Teacher
 router.put('/:id', protect, authorize('teacher'), async (req, res) => {
   try {
+    console.log('Update request for slot:', req.params.id);
+    console.log('Update data received:', req.body);
+    
     let availability = await Availability.findById(req.params.id);
     
     if (!availability) {
@@ -167,15 +197,40 @@ router.put('/:id', protect, authorize('teacher'), async (req, res) => {
     }
     
     // Make sure user owns the availability
-    if (availability.teacher.toString() !== req.user.id) {
+    if (availability.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+    
+    // Only allow updating these fields
+    const allowedFields = ['dayOfWeek', 'subject', 'startTime', 'endTime', 'slotDuration', 'maxCapacity', 'validUntil'];
+    const updates = {};
+    
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+    
+    console.log('Allowed updates:', updates);
+    
+    // Manual validation for endTime
+    const startTime = updates.startTime || availability.startTime;
+    const endTime = updates.endTime || availability.endTime;
+    
+    if (endTime && startTime && endTime <= startTime) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'End time must be after start time' 
+      });
     }
     
     availability = await Availability.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      { new: true, runValidators: true }
+      updates,
+      { new: true, runValidators: false }
     ).populate('subject', 'name code description');
+    
+    console.log('Updated availability:', availability);
     
     res.json({
       success: true,
@@ -183,7 +238,7 @@ router.put('/:id', protect, authorize('teacher'), async (req, res) => {
     });
   } catch (err) {
     console.error('Update availability error:', err);
-    res.status(500).json({ success: false, error: 'Server error' });
+    res.status(500).json({ success: false, error: 'Server error', message: err.message });
   }
 });
 
@@ -199,7 +254,7 @@ router.delete('/:id', protect, authorize('teacher'), async (req, res) => {
     }
     
     // Make sure user owns the availability
-    if (availability.teacher.toString() !== req.user.id) {
+    if (availability.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, error: 'Not authorized' });
     }
     

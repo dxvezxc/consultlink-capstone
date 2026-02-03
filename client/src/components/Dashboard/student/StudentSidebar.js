@@ -25,7 +25,7 @@ const StudentSidebar = ({ view, setView, subjects, startBooking, onLogout, user,
           </div>
           <div className="student-info">
             <p className="student-id">ID: {user?.studentID || 'N/A'}</p>
-            <h3 className="student-name">{user?.name || 'Student'}</h3>
+            <h2 className="student-fullname">{user?.name || 'Student Name'}</h2>
             <p className="student-role">Student</p>
             <div className="student-stats">
               <div className="stat">
@@ -54,23 +54,7 @@ const StudentSidebar = ({ view, setView, subjects, startBooking, onLogout, user,
           ))}
         </nav>
 
-        {/* Quick Stats */}
-        <div className="quick-stats">
-          <div className="quick-stat">
-            <div className="quick-stat-icon pending">⏳</div>
-            <div className="quick-stat-info">
-              <span className="quick-stat-number">5</span>
-              <span className="quick-stat-label">Pending</span>
-            </div>
-          </div>
-          <div className="quick-stat">
-            <div className="quick-stat-icon today">📅</div>
-            <div className="quick-stat-info">
-              <span className="quick-stat-number">3</span>
-              <span className="quick-stat-label">Today</span>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* Logout Button */}

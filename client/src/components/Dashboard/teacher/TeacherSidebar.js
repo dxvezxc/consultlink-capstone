@@ -13,13 +13,17 @@ const TeacherSidebar = ({ view, setView, user, onLogout }) => {
   return (
     <div className="teacher-sidebar">
       <div className="sidebar-content">
+        {/* Teacher Name at Top */}
+        <div className="teacher-name-header">
+          <h2 className="sidebar-teacher-name">{user?.name || 'Teacher'}</h2>
+        </div>
+
         {/* Teacher Profile Section */}
         <div className="teacher-profile-section">
           <div className="teacher-avatar">
             {user?.name?.charAt(0) || 'T'}
           </div>
           <div className="teacher-info">
-            <h3 className="teacher-name">{user?.name || 'Teacher'}</h3>
             <p className="teacher-role">Teacher</p>
             <p className="teacher-department">Department of {user?.department || 'Computer Science'}</p>
           </div>
@@ -42,23 +46,7 @@ const TeacherSidebar = ({ view, setView, user, onLogout }) => {
           ))}
         </nav>
 
-        {/* Quick Stats */}
-        <div className="quick-stats">
-          <div className="quick-stat">
-            <div className="quick-stat-icon pending">⏳</div>
-            <div className="quick-stat-info">
-              <span className="quick-stat-number">5</span>
-              <span className="quick-stat-label">Pending</span>
-            </div>
-          </div>
-          <div className="quick-stat">
-            <div className="quick-stat-icon today">📅</div>
-            <div className="quick-stat-info">
-              <span className="quick-stat-number">3</span>
-              <span className="quick-stat-label">Today</span>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* Logout Button */}

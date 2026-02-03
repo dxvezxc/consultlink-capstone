@@ -52,16 +52,6 @@ const StudentSummaryCards = ({ stats, onCardClick }) => {
       bgColor: '#f5f3ff',
       change: '↑ Learning progress',
       link: null
-    },
-    {
-      id: 'rating',
-      title: 'Teachers Avg Rating',
-      value: stats.avgTeacherRating ? stats.avgTeacherRating.toFixed(1) : '0.0',
-      icon: <TrendingUp size={24} />,
-      color: '#f59e0b',
-      bgColor: '#fffbeb',
-      change: stats.reviewCount ? `Based on ${stats.reviewCount} reviews` : 'No ratings yet',
-      link: null
     }
   ];
 

@@ -18,7 +18,8 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
     startTime: '09:00',
     endTime: '17:00',
     subject: '',
-    slotDuration: 30
+    slotDuration: 30,
+    maxCapacity: 1
   });
 
   const daysOfWeek = [
@@ -110,14 +111,6 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
     loadData();
   }, [user]);
 
-  const calculateTotalHours = () => {
-    return availabilitySlots.reduce((total, slot) => {
-      const start = parseInt(slot.startTime.split(':')[0]);
-      const end = parseInt(slot.endTime.split(':')[0]);
-      return total + (end - start);
-    }, 0);
-  };
-
   const handleAddSlot = async (e) => {
     e.preventDefault();
     
@@ -138,7 +131,8 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
         dayOfWeek: parseInt(newSlot.dayOfWeek),
         startTime: newSlot.startTime,
         endTime: newSlot.endTime,
-        slotDuration: parseInt(newSlot.slotDuration)
+        slotDuration: parseInt(newSlot.slotDuration),
+        maxCapacity: parseInt(newSlot.maxCapacity || 1)
       });
       setAvailabilitySlots([...availabilitySlots, response.data]);
       setShowForm(false);
@@ -147,7 +141,8 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
         startTime: '09:00',
         endTime: '17:00',
         subject: '',
-        slotDuration: 30
+        slotDuration: 30,
+        maxCapacity: 1
       });
       alert('Availability slot created successfully!');
     } catch (error) {
@@ -200,18 +195,45 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
 
     try {
       setLoading(true);
-      const response = await availabilityAPI.updateAvailability(editingSlot._id, {
-        subject: editingSlot.subject,
+      
+      // Send update request to server
+      // Backend returns: { success: true, data: availability }
+      // Axios interceptor unwraps to: { success: true, data: availability }
+      const apiResponse = await availabilityAPI.updateAvailability(editingSlot._id, {
         dayOfWeek: parseInt(editingSlot.dayOfWeek),
+        subject: editingSlot.subject,
         startTime: editingSlot.startTime,
         endTime: editingSlot.endTime,
         slotDuration: parseInt(editingSlot.slotDuration),
-        maxStudents: parseInt(editingSlot.maxStudents)
+        maxCapacity: parseInt(editingSlot.maxCapacity || 1)
       });
       
-      setAvailabilitySlots(availabilitySlots.map(slot => 
-        slot._id === editingSlot._id ? response.data : slot
-      ));
+      console.log('=== Update API Response ===');
+      console.log('Full response:', apiResponse);
+      console.log('Response.data:', apiResponse.data);
+      console.log('Response.success:', apiResponse.success);
+      
+      // Extract the actual availability object
+      const updatedSlot = apiResponse.data;
+      
+      if (!updatedSlot) {
+        console.error('No data in response!');
+        throw new Error('No data returned from server');
+      }
+      
+      console.log('Extracted updatedSlot:', updatedSlot);
+      console.log('Slot ID:', updatedSlot._id);
+      console.log('Subject info:', updatedSlot.subject);
+      
+      // Update the availability slots list with the updated slot
+      setAvailabilitySlots(prevSlots => {
+        const updated = prevSlots.map(slot => 
+          slot._id === editingSlot._id ? updatedSlot : slot
+        );
+        console.log('Updated slots array:', updated);
+        return updated;
+      });
+      
       setShowEditForm(false);
       setEditingSlot(null);
       alert('Availability slot updated successfully!');
@@ -300,36 +322,6 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
             </div>
           </div>
 
-          <div className="availability-stats">
-            <div className="stat-card">
-              <div className="stat-icon calendar-icon">
-                <Calendar size={24} />
-              </div>
-              <div className="stat-info">
-                <div className="stat-num">{availabilitySlots.length}</div>
-                <div className="stat-label">Slots</div>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon clock-icon">
-                <Clock size={24} />
-              </div>
-              <div className="stat-info">
-                <div className="stat-num">{calculateTotalHours()}</div>
-                <div className="stat-label">Hours/Week</div>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon users-icon">
-                <Users size={24} />
-              </div>
-              <div className="stat-info">
-                <div className="stat-num">{availabilitySlots.length}</div>
-                <div className="stat-label">Total Slots</div>
-              </div>
-            </div>
-          </div>
-
           {showForm && (
             <div className="add-slot-card">
               <h3>Add New Availability Slot</h3>
@@ -397,6 +389,17 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
                     value={newSlot.slotDuration}
                     onChange={(e) => setNewSlot({...newSlot, slotDuration: parseInt(e.target.value)})}
                   />
+                </div>
+                <div className="form-group">
+                  <label>Max Students per Slot</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="10"
+                    value={newSlot.maxCapacity}
+                    onChange={(e) => setNewSlot({...newSlot, maxCapacity: parseInt(e.target.value)})}
+                  />
+                  <p className="form-hint">Maximum 1 student per slot is recommended</p>
                 </div>
               </div>
               <div className="form-actions">
@@ -477,14 +480,15 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
                   />
                 </div>
                 <div className="form-group">
-                  <label>Max Students</label>
+                  <label>Max Students per Slot</label>
                   <input 
                     type="number" 
                     min="1" 
-                    max="50"
-                    value={editingSlot.maxStudents}
-                    onChange={(e) => setEditingSlot({...editingSlot, maxStudents: parseInt(e.target.value)})}
+                    max="10"
+                    value={editingSlot.maxCapacity || 1}
+                    onChange={(e) => setEditingSlot({...editingSlot, maxCapacity: parseInt(e.target.value)})}
                   />
+                  <p className="form-hint">Maximum 1 student per slot is recommended</p>
                 </div>
               </div>
               <div className="form-actions">
@@ -563,7 +567,7 @@ const TeacherAvailability = ({ slots, onManageAvailability, isFullView, onBack }
                         <Users size={16} />
                         <div>
                           <p className="capacity-label">Max Capacity</p>
-                          <p className="capacity-value">{slot.maxStudents} student{slot.maxStudents !== 1 ? 's' : ''}</p>
+                          <p className="capacity-value">{slot.maxCapacity || 1} student{slot.maxCapacity !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
                     </div>

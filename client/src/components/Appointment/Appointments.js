@@ -54,20 +54,25 @@ const Appointments = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('[loadAppointments] Starting load, user role:', user.role);
       
       // Determine which API to call based on user role
       const data = user.role === 'teacher' 
         ? await appointmentsAPI.getTeacherAppointments()
         : await appointmentsAPI.getStudentAppointments();
       
+      console.log('[loadAppointments] Data received:', data, 'Type:', typeof data);
+      
       // Apply filters
       const filtered = applyFilters(data);
+      console.log('[loadAppointments] Filtered data:', filtered);
       
       setAppointments(filtered);
       calculateStats(data);
+      console.log('[loadAppointments] State updated successfully');
       
     } catch (err) {
-      console.error('Failed to load appointments:', err);
+      console.error('[loadAppointments] Error occurred:', err);
       setError('Failed to load appointments. Please try again.');
     } finally {
       setLoading(false);
@@ -87,18 +92,22 @@ const Appointments = () => {
     const now = new Date();
     if (filters.dateRange === 'today') {
       const today = now.toISOString().split('T')[0];
-      filtered = filtered.filter(app => app.date === today);
+      filtered = filtered.filter(app => {
+        const appDate = new Date(app.dateTime).toISOString().split('T')[0];
+        return appDate === today;
+      });
     } else if (filters.dateRange === 'thisWeek') {
-      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
       filtered = filtered.filter(app => {
-        const appDate = new Date(app.date);
+        const appDate = new Date(app.dateTime);
         return appDate >= startOfWeek && appDate <= endOfWeek;
       });
     } else if (filters.dateRange === 'upcoming') {
       filtered = filtered.filter(app => {
-        const appDate = new Date(app.date);
+        const appDate = new Date(app.dateTime);
         return appDate >= now && app.status === 'confirmed';
       });
     }
@@ -107,18 +116,17 @@ const Appointments = () => {
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
       filtered = filtered.filter(app => 
-        app.subject?.toLowerCase().includes(query) ||
-        (user.role === 'student' ? app.teacher?.name?.toLowerCase().includes(query) : app.student?.name?.toLowerCase().includes(query)) ||
-        app.reason?.toLowerCase().includes(query)
+        app.subject?.name?.toLowerCase?.()?.includes(query) ||
+        (user.role === 'student' ? app.teacher?.name?.toLowerCase?.()?.includes(query) : app.student?.name?.toLowerCase?.()?.includes(query))
       );
     }
     
     // Sort appointments
     filtered.sort((a, b) => {
       if (filters.sortBy === 'date-desc') {
-        return new Date(b.date) - new Date(a.date);
+        return new Date(b.dateTime) - new Date(a.dateTime);
       } else if (filters.sortBy === 'date-asc') {
-        return new Date(a.date) - new Date(b.date);
+        return new Date(a.dateTime) - new Date(b.dateTime);
       } else if (filters.sortBy === 'status') {
         const statusOrder = { pending: 1, confirmed: 2, completed: 3, cancelled: 4 };
         return statusOrder[a.status] - statusOrder[b.status];
@@ -139,7 +147,7 @@ const Appointments = () => {
       completed: data.filter(app => app.status === 'completed').length,
       cancelled: data.filter(app => app.status === 'cancelled').length,
       upcoming: data.filter(app => {
-        const appDate = new Date(app.date);
+        const appDate = new Date(app.dateTime);
         return appDate >= now && app.status === 'confirmed';
       }).length
     };
@@ -151,44 +159,51 @@ const Appointments = () => {
   const handleAppointmentAction = async (action, appointmentId, data = {}) => {
     try {
       setLoading(true);
+      console.log('[handleAppointmentAction] Starting action:', action, 'appointmentId:', appointmentId);
       
       switch (action) {
         case 'cancel':
           if (window.confirm('Are you sure you want to cancel this appointment?')) {
+            console.log('[action:cancel] Calling cancelAppointment');
             await appointmentsAPI.cancelAppointment(appointmentId, data.reason);
             alert('Appointment cancelled successfully.');
           }
           break;
           
         case 'approve':
-          await appointmentsAPI.updateAppointmentStatus(appointmentId, 'confirmed');
+          console.log('[action:approve] Calling confirmAppointment');
+          await appointmentsAPI.confirmAppointment(appointmentId);
           alert('Appointment approved successfully.');
           break;
           
         case 'reject':
-          await appointmentsAPI.updateAppointmentStatus(appointmentId, 'rejected', data.reason);
+          console.log('[action:reject] Calling cancelAppointment');
+          await appointmentsAPI.cancelAppointment(appointmentId, data.reason);
           alert('Appointment rejected.');
           break;
           
         case 'complete':
-          await appointmentsAPI.updateAppointmentStatus(appointmentId, 'completed');
+          console.log('[action:complete] Calling completeAppointment');
+          await appointmentsAPI.completeAppointment(appointmentId, {});
           alert('Appointment marked as completed.');
           break;
           
         case 'reschedule':
-          await appointmentsAPI.requestReschedule(appointmentId, data.newDate, data.newTime);
-          alert('Reschedule request sent.');
+          // Reschedule not yet implemented in API
+          alert('Reschedule feature coming soon.');
           break;
           
         default:
           break;
       }
       
+      console.log('[handleAppointmentAction] Action completed, reloading appointments');
       // Reload appointments
       await loadAppointments();
+      console.log('[handleAppointmentAction] Reload completed');
       
     } catch (err) {
-      console.error('Appointment action failed:', err);
+      console.error('[handleAppointmentAction] Error:', err);
       alert(`Failed to ${action} appointment. Please try again.`);
     } finally {
       setLoading(false);

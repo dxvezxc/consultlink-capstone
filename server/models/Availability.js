@@ -25,19 +25,19 @@ const AvailabilitySchema = new mongoose.Schema({
   },
   endTime: {
     type: String,
-    required: true,
-    validate: {
-      validator: function(v) {
-        return v > this.startTime; // Simple validation
-      },
-      message: 'End time must be after start time'
-    }
+    required: true
   },
   slotDuration: {
     type: Number, // in minutes
     default: 30,
     min: 15,
     max: 120
+  },
+  maxCapacity: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 10
   },
   isRecurring: {
     type: Boolean,

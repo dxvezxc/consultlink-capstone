@@ -47,6 +47,7 @@ const generateTimeSlots = (availabilitySlots) => {
 
 export default function TimeSlotPicker({ teacherId, subjectId, selectedDate, onTimeSelect, selectedTime }) {
   const [slots, setSlots] = useState([]);
+  const [bookedSlots, setBookedSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,18 +59,29 @@ export default function TimeSlotPicker({ teacherId, subjectId, selectedDate, onT
         
         if (!teacherId || !subjectId || !selectedDate) {
           setSlots([]);
+          setBookedSlots([]);
           return;
         }
 
+        // Fetch available slots
         const response = await consultationsAPI.getAvailableSlots(
           teacherId,
           subjectId,
           selectedDate
         );
         
+        // Fetch booked slots for this date
+        const bookedResponse = await consultationsAPI.getBookedSlots(
+          teacherId,
+          selectedDate
+        );
+
         const availabilitySlots = response.slots || [];
         const bookableSlots = generateTimeSlots(availabilitySlots);
+        const booked = bookedResponse.bookedTimes || [];
+        
         setSlots(bookableSlots);
+        setBookedSlots(booked);
         
         if (bookableSlots.length === 0 && availabilitySlots.length === 0) {
           setError('No availability set for this date');
@@ -78,6 +90,7 @@ export default function TimeSlotPicker({ teacherId, subjectId, selectedDate, onT
         console.error('Error fetching available slots:', error);
         setError('Failed to load available slots');
         setSlots([]);
+        setBookedSlots([]);
       } finally {
         setLoading(false);
       }
@@ -106,16 +119,21 @@ export default function TimeSlotPicker({ teacherId, subjectId, selectedDate, onT
     <div className="time-slot-picker">
       {slots.length > 0 ? (
         <div className="slots-grid">
-          {slots.map((slot, index) => (
-            <button
-              key={index}
-              className={`slot-button ${selectedTime === slot.time ? 'selected' : ''}`}
-              onClick={() => onTimeSelect(slot.time)}
-              title={`${slot.time} - ${minutesToTime(slot.endMinutes)}`}
-            >
-              {slot.time}
-            </button>
-          ))}
+          {slots.map((slot, index) => {
+            const isBooked = bookedSlots.includes(slot.time);
+            return (
+              <button
+                key={index}
+                className={`slot-button ${selectedTime === slot.time ? 'selected' : ''} ${isBooked ? 'booked' : ''}`}
+                onClick={() => !isBooked && onTimeSelect(slot.time)}
+                disabled={isBooked}
+                title={isBooked ? `${slot.time} - BOOKED (1 student maximum per slot)` : `${slot.time} - ${minutesToTime(slot.endMinutes)}`}
+              >
+                {slot.time}
+                {isBooked && <span className="booked-label">BOOKED</span>}
+              </button>
+            );
+          })}
         </div>
       ) : (
         <p>No available slots for this date</p>

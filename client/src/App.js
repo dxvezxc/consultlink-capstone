@@ -7,7 +7,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from "./context/AuthContext";
 
 /* Components */
-import Navbar from "./components/Shared/Navbar";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 
 /* Pages */
@@ -22,7 +21,7 @@ import AdminDashboard from "./components/Dashboard/admin/AdminDashboard";
 import Booking from "./pages/Booking";
 import Appointments from "./pages/Appointments";
 import Availability from "./pages/Availability";
-import Debug from "./pages/Debug";
+import Teachers from "./pages/Teachers";
 
 function App() {
   return (
@@ -70,10 +69,11 @@ function App() {
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
-              
-              {/* Fallback Routes */}
-              {/* Debug Route */}
-              <Route path="/debug" element={<Debug />} />
+              <Route path="/admin/teachers" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Teachers />
+                </ProtectedRoute>
+              } />
               
               {/* Catch all - redirect to home */}
               <Route path="*" element={<Navigate to="/" replace />} />
