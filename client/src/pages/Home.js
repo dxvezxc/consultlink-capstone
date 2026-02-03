@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import "./Home.css";
 
 const Home = () => {
+  // eslint-disable-next-line no-unused-vars
   const { user, login, register, error, loading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("login");

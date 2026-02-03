@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Calendar } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react'; // eslint-disable-line no-unused-vars
 
 const TeacherSummaryCards = ({ stats, onCardClick }) => {
   const cards = [
