@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Trash2, BookOpen, X } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { subjectsAPI } from '../../../api/subjects';
@@ -11,12 +11,27 @@ const TeacherSubjects = () => {
   const [showPicker, setShowPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
+  const loadedRef = useRef(false);
 
   // Load all subjects and user's selected subjects
   const loadSubjects = useCallback(async () => {
+    // Prevent duplicate requests
+    if (loadedRef.current) {
+      console.log('[loadSubjects] Already loaded, skipping');
+      return;
+    }
+    
+    // Cancel previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       setLoading(true);
       setError(null);
+      loadedRef.current = true;
 
       // Get all subjects - axios interceptor returns response.data directly
       const subjectsResponse = await subjectsAPI.getAll();
@@ -25,7 +40,7 @@ const TeacherSubjects = () => {
       // subjectsResponse IS the array (not wrapped), because axios interceptor unwraps it
       const allSubjectsList = Array.isArray(subjectsResponse) 
         ? subjectsResponse 
-        : (Array.isArray(subjectsResponse.data) ? subjectsResponse.data : []);
+        : (Array.isArray(subjectsResponse?.data) ? subjectsResponse.data : []);
       
       console.log('All subjects loaded:', allSubjectsList);
       setAllSubjects(allSubjectsList);
@@ -39,7 +54,8 @@ const TeacherSubjects = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        signal: abortControllerRef.current.signal
       });
 
       console.log('User response status:', response.status);
@@ -65,20 +81,37 @@ const TeacherSubjects = () => {
         setMySubjects([]);
       }
     } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('[loadSubjects] Request was cancelled');
+        return;
+      }
       console.error('Error loading subjects:', err);
-      setError('Failed to load subjects: ' + err.message);
+      
+      // Check for 429 rate limit error
+      if (err.status === 429) {
+        setError('Too many requests. Please wait a moment before retrying.');
+      } else {
+        setError('Failed to load subjects. Please try again.');
+      }
       setMySubjects([]);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
-  // Load subjects on mount
+  // Load subjects on mount - only once
   useEffect(() => {
     if (user?._id) {
       loadSubjects();
     }
-  }, [user, loadSubjects]);
+
+    // Cleanup: abort request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [user?._id]);
 
   // Get available subjects (not yet selected)
   const availableSubjects = allSubjects.filter(

@@ -28,7 +28,7 @@ const AppointmentDetailModal = ({ appointment, onClose, onMessage, onCancel }) =
         return '#10b981';
       case 'completed':
         return '#3b82f6';
-      case 'cancelled':
+      case 'canceled':
         return '#ef4444';
       default:
         return '#6b7280';
@@ -57,7 +57,7 @@ const AppointmentDetailModal = ({ appointment, onClose, onMessage, onCancel }) =
 
   const statusColor = getStatusColor(appointment.status);
   const canMessage = appointment.status?.toLowerCase() === 'confirmed' || appointment.status?.toLowerCase() === 'completed';
-  const canCancel = appointment.status?.toLowerCase() !== 'cancelled' && appointment.status?.toLowerCase() !== 'completed';
+  const canCancel = appointment.status?.toLowerCase() !== 'canceled' && appointment.status?.toLowerCase() !== 'completed';
 
   return (
     <div className="modal-overlay" onClick={onClose}>

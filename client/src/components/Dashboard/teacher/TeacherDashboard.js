@@ -38,6 +38,29 @@ const TeacherDashboard = () => {
   const [availabilitySlots, setAvailabilitySlots] = useState([]);
   const [appointmentRequests, setAppointmentRequests] = useState([]);
 
+  // Refetch appointments when needed
+  const handleRefetchAppointments = async () => {
+    try {
+      const response = await consultationsAPI.getUserConsultations({ status: 'pending' });
+      const appointments = Array.isArray(response)
+        ? response
+        : (response?.consultations || response?.data || []);
+      setAppointmentRequests(appointments);
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pendingRequests: appointments.length,
+        todayConsultations: appointments.filter(apt => {
+          const today = new Date().toDateString();
+          return new Date(apt.dateTime).toDateString() === today;
+        }).length,
+      }));
+    } catch (err) {
+      console.error('Error refetching appointments:', err);
+    }
+  };
+
   // Load initial data from API
   useEffect(() => {
     const loadInitialData = async () => {
@@ -65,7 +88,7 @@ const TeacherDashboard = () => {
         // appointmentsRes is already unwrapped, so it's either the array or { success, count, consultations }
         const appointments = Array.isArray(appointmentsRes)
           ? appointmentsRes
-          : (appointmentsRes?.consultations || []);
+          : (appointmentsRes?.consultations || appointmentsRes?.data || []);
         
         setAvailabilitySlots(slots);
         setAppointmentRequests(appointments);
@@ -181,6 +204,7 @@ const TeacherDashboard = () => {
                     requests={appointmentRequests}
                     onAppointmentAction={handleAppointmentAction}
                     onViewAll={() => setView('requests')}
+                    onRefetch={handleRefetchAppointments}
                   />
                 </div>
                 <div className="grid-sidebar">

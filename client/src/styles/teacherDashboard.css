@@ -579,6 +579,7 @@
   border-radius: 10px;
   padding: 20px;
   transition: all 0.3s;
+  overflow: hidden;
 }
 
 .appointment-card:hover {
@@ -592,19 +593,22 @@
   align-items: flex-start;
   margin-bottom: 15px;
   gap: 12px;
+  min-width: 0;
 }
 
 .appointment-header-right {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
-  margin-left: auto;
+  width: auto;
 }
 
 .header-action-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  align-items: center;
+  min-width: 140px;
 }
 
 .student-info {
@@ -722,15 +726,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
-  min-width: 36px;
-  height: 36px;
+  padding: 10px 12px;
+  min-width: 60px;
+  height: 40px;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 13px;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  gap: 4px;
 }
 
 .approve-btn {
@@ -1351,4 +1356,95 @@
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid #e5e7eb;
+}
+
+/* Error Banner */
+.error-banner {
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #c91c22;
+}
+
+.error-banner p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.retry-btn {
+  background: #c91c22;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.retry-btn:hover {
+  background: #a01820;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  animation: slideIn 0.3s ease-in-out;
+  z-index: 1000;
+}
+
+.toast-notification.success {
+  background: #10b981;
+  color: white;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }

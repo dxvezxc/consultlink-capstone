@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { appointmentsAPI } from '../../../api/appointments';
@@ -40,6 +40,9 @@ const StudentDashboard = () => {
       avgTeacherRating: 0,
       reviewCount: 0
     });
+  
+  const abortControllerRef = useRef(null);
+  const loadedRef = useRef(false);
 
     // Load data on component mount
     useEffect(() => {
@@ -47,6 +50,19 @@ const StudentDashboard = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
+      // Prevent duplicate loads
+      if (loadedRef.current) {
+        console.log('Dashboard already loaded, skipping');
+        return;
+      }
+      loadedRef.current = true;
 
       // Fetch subjects
       try {
@@ -72,6 +88,13 @@ const StudentDashboard = () => {
           status: err.status,
           data: err.data
         });
+        
+        // Handle 429 rate limit error specifically
+        if (err.status === 429) {
+          setError('Too many requests. Please wait a moment and try again.');
+        } else {
+          setError('Failed to load subjects. Please try again.');
+        }
         setSubjects([]);
       }
 
@@ -144,6 +167,13 @@ const StudentDashboard = () => {
   };
     
     fetchDashboardData();
+
+    // Cleanup: abort request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   // Start booking process - show subject selection first

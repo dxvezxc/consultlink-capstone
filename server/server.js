@@ -2,7 +2,7 @@ const app = require('./app');
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`
     =============================================
     🚀 Server running in ${process.env.NODE_ENV} mode
@@ -10,6 +10,12 @@ const server = app.listen(PORT, () => {
     📅 Started: ${new Date().toISOString()}
     =============================================
   `);
+});
+
+// Log server errors (EADDRINUSE, EACCES, etc.)
+server.on('error', (err) => {
+  console.error('❌ Server error:', err && err.message);
+  if (err && err.stack) console.error(err.stack);
 });
 
 // Handle unhandled promise rejections (log but don't crash)

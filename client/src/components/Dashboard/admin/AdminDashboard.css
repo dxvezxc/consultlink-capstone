@@ -1049,6 +1049,10 @@
   padding: 24px;
   border: 2px solid #e2e8f0;
   transition: all 0.3s ease;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .monitoring-card:hover {
@@ -1079,6 +1083,7 @@
   margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .monitoring-card .card-header h3 {
@@ -1106,6 +1111,7 @@
   padding: 15px;
   background: white;
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .stat-row {
@@ -1130,6 +1136,27 @@
 /* Recent Lists */
 .recent-list {
   margin-top: 20px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.recent-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.recent-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.recent-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.recent-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .recent-list h4 {
@@ -1142,10 +1169,40 @@
 }
 
 .user-list,
-.subject-list {
+.subject-list,
+.consultation-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.user-list::-webkit-scrollbar,
+.subject-list::-webkit-scrollbar,
+.consultation-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-list::-webkit-scrollbar-track,
+.subject-list::-webkit-scrollbar-track,
+.consultation-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.user-list::-webkit-scrollbar-thumb,
+.subject-list::-webkit-scrollbar-thumb,
+.consultation-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.user-list::-webkit-scrollbar-thumb:hover,
+.subject-list::-webkit-scrollbar-thumb:hover,
+.consultation-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .user-item,

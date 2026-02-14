@@ -6,7 +6,7 @@ import { useFetch } from '../../hooks/useFetch';
 import SummaryCard from './common/SummaryCard';
 
 export default function AdminDashboard() {
-  const { data: stats } = useFetch('/api/admin/stats');
+  const { data: stats } = useFetch('/admin/stats');
 
   return (
     <div className="admin-dashboard">

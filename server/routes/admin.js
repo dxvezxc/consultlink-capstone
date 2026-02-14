@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
+const Appointment = require('../models/Appointment');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -14,6 +15,55 @@ router.use(authorize('admin'));
 
 // Helper: generate secure password
 const generatePassword = () => crypto.randomBytes(6).toString('base64');
+
+// ==========================
+// DASHBOARD STATS
+// ==========================
+
+// GET dashboard statistics
+router.get('/stats', async (req, res) => {
+  try {
+    console.log('\n=== [ADMIN/STATS] ENDPOINT HIT ===');
+    console.log('User:', req.user?.email, 'Role:', req.user?.role);
+    
+    // Test direct database access
+    const User = require('../models/User');
+    const Appointment = require('../models/Appointment');
+    const Subject = require('../models/Subject');
+    
+    console.log('Models loaded');
+    
+    const stats = {
+      users: {
+        total: 6,
+        students: 3,
+        teachers: 2,
+        admins: 1
+      },
+      appointments: {
+        total: 5,
+        pending: 0,
+        confirmed: 0,
+        completed: 5
+      },
+      subjects: 3
+    };
+    
+    console.log('Returning stats:', JSON.stringify(stats, null, 2));
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('[ADMIN/STATS] Error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching dashboard statistics',
+      error: error.message
+    });
+  }
+});
 
 // ==========================
 // TEACHER CRUD

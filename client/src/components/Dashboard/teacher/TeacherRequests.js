@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Clock, BookOpen, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import consultationsAPI from '../../../api/consultations';
 import ChatBox from '../../Chat/ChatBox';
@@ -10,11 +10,20 @@ const TeacherRequests = () => {
   const [chatAppointment, setChatAppointment] = useState(null);
   const [requests, setRequests] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
 
   // Load real appointment requests
   const loadRequests = async () => {
+    // Cancel previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       setRefreshing(true);
+      setError(null);
       console.log('TeacherRequests: Loading requests...');
       const response = await consultationsAPI.getUserConsultations({ status: '' });
       console.log('TeacherRequests: Full response:', response);
@@ -22,13 +31,16 @@ const TeacherRequests = () => {
       console.log('TeacherRequests: response.data:', response.data);
       
       // The axios interceptor returns response.data directly, so response IS the data
-      const appointmentList = response.consultations || [];
+      const appointmentList = response.consultations || response.data || response || [];
       console.log('TeacherRequests: Final appointments list:', appointmentList);
       console.log('TeacherRequests: Count:', appointmentList.length);
       setRequests(appointmentList);
     } catch (error) {
-      console.error('TeacherRequests: Error loading requests:', error);
-      setRequests([]);
+      if (error.name !== 'AbortError') {
+        console.error('TeacherRequests: Error loading requests:', error);
+        setError('Failed to load appointment requests. Please try again.');
+        setRequests([]);
+      }
     } finally {
       setRefreshing(false);
     }
@@ -36,6 +48,13 @@ const TeacherRequests = () => {
 
   useEffect(() => {
     loadRequests();
+
+    // Cleanup: abort request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   const filteredRequests = filter === 'all' 
@@ -44,23 +63,53 @@ const TeacherRequests = () => {
 
   const handleApprove = async (id) => {
     try {
+      setRefreshing(true);
       await consultationsAPI.approveConsultation(id);
+      
+      // Remove from local state immediately for UX
       setRequests(requests.filter(req => req._id !== id));
-      alert('Appointment confirmed!');
+      
+      // Show success feedback
+      const successMsg = document.createElement('div');
+      successMsg.className = 'toast-notification success';
+      successMsg.textContent = 'Appointment confirmed!';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+      
     } catch (error) {
       console.error('Error approving request:', error);
-      alert('Error confirming appointment');
+      setError('Failed to confirm appointment. Please try again.');
+      
+      // Reload list on error
+      await loadRequests();
+    } finally {
+      setRefreshing(false);
     }
   };
 
   const handleReject = async (id) => {
     try {
+      setRefreshing(true);
       await consultationsAPI.rejectConsultation(id, 'Declined by teacher');
+      
+      // Remove from local state immediately for UX
       setRequests(requests.filter(req => req._id !== id));
-      alert('Appointment rejected!');
+      
+      // Show success feedback
+      const successMsg = document.createElement('div');
+      successMsg.className = 'toast-notification success';
+      successMsg.textContent = 'Appointment rejected!';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+      
     } catch (error) {
       console.error('Error rejecting request:', error);
-      alert('Error rejecting appointment');
+      setError('Failed to reject appointment. Please try again.');
+      
+      // Reload list on error
+      await loadRequests();
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -99,6 +148,16 @@ const TeacherRequests = () => {
           </div>
         </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="error-banner">
+          <p>{error}</p>
+          <button onClick={loadRequests} className="retry-btn">
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="requests-content">
         {/* Requests List */}

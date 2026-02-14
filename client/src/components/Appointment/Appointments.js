@@ -10,6 +10,7 @@ import AppointmentFilters from './AppointmentFilters';
 import AppointmentCalendar from './AppointmentCalendar';
 import AppointmentStats from './AppointmentStats';
 import EmptyAppointments from './EmptyAppointments';
+import ChatBox from '../Chat/ChatBox';
 
 // CSS
 import './Appointments.css';
@@ -44,6 +45,9 @@ const Appointments = () => {
   // Selected appointment for details
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  
+  // Chat state
+  const [chatAppointment, setChatAppointment] = useState(null);
 
   // Load appointments
   useEffect(() => {
@@ -128,7 +132,7 @@ const Appointments = () => {
       } else if (filters.sortBy === 'date-asc') {
         return new Date(a.dateTime) - new Date(b.dateTime);
       } else if (filters.sortBy === 'status') {
-        const statusOrder = { pending: 1, confirmed: 2, completed: 3, cancelled: 4 };
+        const statusOrder = { pending: 1, confirmed: 2, completed: 3, canceled: 4 };
         return statusOrder[a.status] - statusOrder[b.status];
       }
       return 0;
@@ -145,7 +149,7 @@ const Appointments = () => {
       pending: data.filter(app => app.status === 'pending').length,
       confirmed: data.filter(app => app.status === 'confirmed').length,
       completed: data.filter(app => app.status === 'completed').length,
-      cancelled: data.filter(app => app.status === 'cancelled').length,
+      canceled: data.filter(app => app.status === 'canceled').length,
       upcoming: data.filter(app => {
         const appDate = new Date(app.dateTime);
         return appDate >= now && app.status === 'confirmed';
@@ -191,6 +195,16 @@ const Appointments = () => {
         case 'reschedule':
           // Reschedule not yet implemented in API
           alert('Reschedule feature coming soon.');
+          break;
+          
+        case 'message':
+          // Open chat for this appointment
+          const appointment = appointments.find(apt => apt._id === appointmentId);
+          if (appointment) {
+            setChatAppointment(appointment);
+            setLoading(false);
+            return;
+          }
           break;
           
         default:
@@ -329,6 +343,17 @@ const Appointments = () => {
       {showDetails && selectedAppointment && (
         <div className="appointment-details-modal">
           {/* Modal will be implemented separately */}
+        </div>
+      )}
+
+      {/* Chat Box */}
+      {chatAppointment && (
+        <div className="chatbox-overlay">
+          <ChatBox
+            appointment={chatAppointment}
+            otherUser={user.role === 'student' ? chatAppointment.teacher : chatAppointment.student}
+            onClose={() => setChatAppointment(null)}
+          />
         </div>
       )}
     </div>

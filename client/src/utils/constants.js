@@ -14,7 +14,7 @@ export const CONSULTATION_STATUS = {
   APPROVED: 'approved',
   REJECTED: 'rejected',
   COMPLETED: 'completed',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'canceled'
 };
 
 export const CONSULTATION_TYPES = {

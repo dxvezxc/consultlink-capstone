@@ -12,21 +12,30 @@ export default function AdminPage() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [activeSection, setActiveSection] = useState('dashboard');
 
   useEffect(() => {
+    console.log('[AdminPage] 🚀 useEffect triggered, calling fetchStats and fetchUsers');
     fetchStats();
     fetchUsers();
   }, []);
 
   const fetchStats = async () => {
     try {
+      console.log('[AdminPage] 📊 fetchStats() starting...');
       setLoading(true);
+      setError(null);
+      console.log('[AdminPage] 🔍 About to call adminAPI.getDashboardStats()');
       const response = await adminAPI.getDashboardStats();
-      setStats(response.data);
+      console.log('[AdminPage] ✅ Stats response received:', response);
+      // response is {success: true, data: {...}} from the endpoint
+      setStats(response?.data);
+      console.log('[AdminPage] ✅ Stats set to:', response?.data);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('[AdminPage] ❌ Error fetching stats:', error);
+      setError(error?.message || 'Failed to fetch data. Are you authorized?');
     } finally {
       setLoading(false);
     }
@@ -34,10 +43,14 @@ export default function AdminPage() {
 
   const fetchUsers = async () => {
     try {
+      setError(null);
       const response = await adminAPI.getAllUsers();
-      setUsers(response.data || []);
+      console.log('Users response:', response);
+      // response is array from the endpoint (via axios interceptor)
+      setUsers(Array.isArray(response) ? response : (response?.data || []));
     } catch (error) {
       console.error('Error fetching users:', error);
+      setError(error?.message || 'Failed to fetch data. Are you authorized?');
     }
   };
 
@@ -74,6 +87,19 @@ export default function AdminPage() {
       <div className="admin-page">
         <h1>Admin Dashboard</h1>
         <p className="dashboard-subtitle">Manage your system</p>
+
+        {error && (
+          <div style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            backgroundColor: '#f8d7da',
+            border: '1px solid #f5c6cb',
+            borderRadius: '4px',
+            color: '#721c24'
+          }}>
+            {error}
+          </div>
+        )}
 
         <div className="admin-tabs">
           <button 

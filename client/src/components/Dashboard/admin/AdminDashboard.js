@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../../api/axios';
 import { LogOut, Users, BookOpen, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -38,29 +38,23 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
         
-        if (!token) {
-          setError('No authentication token found. Please login again.');
-          setLoading(false);
-          return;
-        }
-        
-        const config = {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        };
-        
-        const teacherRes = await axios.get('/api/admin/teachers', config);
-        const subjectRes = await axios.get('/api/admin/subjects', config);
-        const studentsRes = await axios.get('/api/admin/users?role=student', config);
+        const teacherRes = await axiosInstance.get('/admin/teachers');
+        const subjectRes = await axiosInstance.get('/admin/subjects');
+        const studentsRes = await axiosInstance.get('/admin/users?role=student');
         
         let consultations = [];
         try {
-          const consultationRes = await axios.get('/api/consultations', config);
+          // Fetch all consultations (admin has access to all)
+          const consultationRes = await axiosInstance.get('/consultations');
+          console.log('[AdminDashboard] consultationRes structure:', consultationRes);
+          
           // Extract consultations from the response - handle different response structures
-          if (Array.isArray(consultationRes.data)) {
+          if (Array.isArray(consultationRes)) {
+            consultations = consultationRes;
+          } else if (consultationRes.consultations && Array.isArray(consultationRes.consultations)) {
+            consultations = consultationRes.consultations;
+          } else if (Array.isArray(consultationRes.data)) {
             consultations = consultationRes.data;
           } else if (consultationRes.data?.consultations && Array.isArray(consultationRes.data.consultations)) {
             consultations = consultationRes.data.consultations;
@@ -72,15 +66,24 @@ const AdminDashboard = () => {
           consultations = [];
         }
         
-        setTeachers(teacherRes.data || []);
-        setSubjects(subjectRes.data || []);
-        setStudents(Array.isArray(studentsRes.data) ? studentsRes.data : (studentsRes.data?.data || []));
-        setSubjects(subjectRes.data || []);
+        // axios interceptor unwraps response.data, so we get the raw data directly
+        // Teachers, Subjects, and Students endpoints return arrays
+        const teacherArray = Array.isArray(teacherRes) ? teacherRes : (Array.isArray(teacherRes.data) ? teacherRes.data : []);
+        const subjectArray = Array.isArray(subjectRes) ? subjectRes : (Array.isArray(subjectRes.data) ? subjectRes.data : []);
+        const studentArray = Array.isArray(studentsRes) ? studentsRes : (Array.isArray(studentsRes.data) ? studentsRes.data : []);
+        
+        console.log('[AdminDashboard] teachers:', teacherArray);
+        console.log('[AdminDashboard] subjects:', subjectArray);
+        console.log('[AdminDashboard] consultations:', consultations);
+        
+        setTeachers(teacherArray || []);
+        setSubjects(subjectArray || []);
+        setStudents(studentArray || []);
         setConsultations(Array.isArray(consultations) ? consultations : []);
         setError('');
       } catch (err) {
-        console.error('Fetch error details:', err.response?.data || err.message);
-        setError(err.response?.data?.msg || 'Failed to fetch data. Are you authorized?');
+        console.error('[AdminDashboard] Fetch error:', err);
+        setError(err.message || 'Failed to fetch data. Are you authorized?');
       } finally {
         setLoading(false);
       }
@@ -96,16 +99,17 @@ const AdminDashboard = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      };
+      const res = await axiosInstance.post('/admin/teachers', newTeacher);
       
-      const res = await axios.post('/api/admin/teachers', newTeacher, config);
-      setTeachers([...teachers, res.data.teacher]);
-      setGeneratedPassword(res.data.generatedPassword);
+      // axios interceptor unwraps response.data
+      // response is: { msg, teacher, generatedPassword }
+      const newTeacherData = res.teacher || res.data?.teacher || res;
+      
+      console.log('[addTeacher] response:', res);
+      console.log('[addTeacher] newTeacherData:', newTeacherData);
+      
+      setTeachers([...teachers, newTeacherData]);
+      setGeneratedPassword(res.generatedPassword || res.data?.generatedPassword || '');
       setNewTeacher({ name: '', email: '', subjects: [] });
       setSuccess('Teacher added successfully!');
       setError('');
@@ -113,7 +117,8 @@ const AdminDashboard = () => {
       // Clear success message after 5 seconds
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to add teacher');
+      console.error('[addTeacher] error:', err);
+      setError(err.message || err.response?.data?.msg || 'Failed to add teacher');
       setSuccess('');
     }
   };
@@ -140,7 +145,7 @@ const AdminDashboard = () => {
         }
       };
       
-      await axios.delete(`/api/admin/teachers/${deletingTeacher._id}`, config);
+      await axiosInstance.delete(`/admin/teachers/${deletingTeacher._id}`);
       setTeachers(teachers.filter(t => t._id !== deletingTeacher._id));
       setDeletingTeacher(null);
       setSuccess('Teacher deleted successfully');
@@ -155,19 +160,17 @@ const AdminDashboard = () => {
   // Update teacher subjects
   const updateTeacherSubjects = async (teacherId, selectedSubjects) => {
     try {
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      };
+      const res = await axiosInstance.put(`/admin/teachers/${teacherId}`, { subjects: selectedSubjects });
       
-      const res = await axios.put(`/api/admin/teachers/${teacherId}`, { subjects: selectedSubjects }, config);
-      setTeachers(teachers.map(t => t._id === teacherId ? res.data : t));
+      // axios interceptor unwraps response.data
+      const updatedTeacher = res.teacher || res.data?.teacher || res;
+      
+      setTeachers(teachers.map(t => t._id === teacherId ? updatedTeacher : t));
       setSuccess('Teacher subjects updated');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to update subjects');
+      console.error('[updateTeacherSubjects] error:', err);
+      setError(err.message || err.response?.data?.msg || 'Failed to update subjects');
     }
   };
 
@@ -179,21 +182,21 @@ const AdminDashboard = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      };
+      const res = await axiosInstance.post('/admin/subjects', newSubject);
       
-      const res = await axios.post('/api/admin/subjects', newSubject, config);
-      setSubjects([...subjects, res.data]);
+      // axios interceptor unwraps response.data, so res is the subject object directly
+      const newSubjectData = res.subject || res.data?.subject || res;
+      
+      console.log('[addSubject] response:', res);
+      
+      setSubjects([...subjects, newSubjectData]);
       setNewSubject({ name: '' });
       setSuccess('Subject added successfully!');
       setError('');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to add subject');
+      console.error('[addSubject] error:', err);
+      setError(err.message || err.response?.data?.msg || 'Failed to add subject');
       setSuccess('');
     }
   };
@@ -210,7 +213,7 @@ const AdminDashboard = () => {
         }
       };
       
-      await axios.delete(`/api/admin/subjects/${id}`, config);
+      await axiosInstance.delete(`/admin/subjects/${id}`);
       setSubjects(subjects.filter(s => s._id !== id));
       setSuccess('Subject deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -611,11 +614,11 @@ const AdminDashboard = () => {
                     <div key={t._id} className="teacher-card">
                       <div className="teacher-header">
                         <div className="teacher-avatar">
-                          {t.name.charAt(0).toUpperCase()}
+                          {(t.name || t.firstName || 'T').charAt(0).toUpperCase()}
                         </div>
                         <div className="teacher-info">
-                          <h4>{t.name}</h4>
-                          <p>{t.email}</p>
+                          <h4>{t.name || t.firstName || 'Teacher'}</h4>
+                          <p>{t.email || 'N/A'}</p>
                         </div>
                       </div>
                       

@@ -17,7 +17,7 @@ export const getStatusColor = (status) => {
     'approved': '#4CAF50',
     'rejected': '#F44336',
     'completed': '#2196F3',
-    'cancelled': '#999999'
+    'canceled': '#999999'
   };
   return colors[status] || '#999999';
 };
@@ -28,7 +28,7 @@ export const getStatusDisplayText = (status) => {
     'approved': 'Approved',
     'rejected': 'Rejected',
     'completed': 'Completed',
-    'cancelled': 'Cancelled'
+    'canceled': 'Canceled'
   };
   return displayText[status] || status;
 };
@@ -39,7 +39,7 @@ export const getStatusBadgeClass = (status) => {
     'approved': 'badge-success',
     'rejected': 'badge-danger',
     'completed': 'badge-info',
-    'cancelled': 'badge-secondary'
+    'canceled': 'badge-secondary'
   };
   return classes[status] || 'badge-secondary';
 };

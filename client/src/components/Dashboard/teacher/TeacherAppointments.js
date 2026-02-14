@@ -1,28 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, Video, MessageSquare, MoreVertical } from 'lucide-react';
 import consultationsAPI from '../../../api/consultations';
 import ChatBox from '../../Chat/ChatBox';
 import '../../../styles/modal.css';
 
-const TeacherAppointments = ({ requests, onAppointmentAction, onViewAll }) => {
+const TeacherAppointments = ({ requests, onAppointmentAction, onViewAll, onRefetch }) => {
   const [selectedFilter, setSelectedFilter] = useState('pending');
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState(requests || []);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
 
   // Load pending appointments from database
-  useEffect(() => {
-    const loadAppointments = async () => {
-      try {
-        const response = await consultationsAPI.getUserConsultations({ status: 'pending' });
-        setAppointments(response.consultations || response.data || []);
-      } catch (error) {
+  const loadAppointments = useCallback(async () => {
+    // Cancel previous request if it exists and hasn't completed
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await consultationsAPI.getUserConsultations({ status: 'pending' });
+      setAppointments(response.consultations || response.data || response || []);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
         console.error('Error loading appointments:', error);
-        setAppointments([]);
+        setError('Failed to load appointments');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAppointments();
+
+    // Cleanup: abort request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
-    loadAppointments();
-  }, []);
+  }, [loadAppointments]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -41,36 +64,159 @@ const TeacherAppointments = ({ requests, onAppointmentAction, onViewAll }) => {
 
   const handleApprove = async (id) => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       await consultationsAPI.approveConsultation(id);
+      
+      // Remove from local state immediately for UX
       setAppointments(appointments.filter(apt => apt._id !== id));
-      alert('Appointment confirmed!');
+      
+      // Notify parent
+      if (onAppointmentAction) {
+        onAppointmentAction(id, 'approve');
+      }
+      
+      // Trigger parent refetch if callback provided
+      if (onRefetch) {
+        await onRefetch();
+      }
+      
+      // Show success feedback
+      const successMsg = document.createElement('div');
+      successMsg.className = 'toast-notification success';
+      successMsg.textContent = 'Appointment confirmed!';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+      
     } catch (error) {
       console.error('Error confirming appointment:', error);
-      alert('Error confirming appointment: ' + error.message);
+      
+      // Check if we should auto-retry
+      if (error.shouldRetry) {
+        console.warn('Auto-retrying after error...');
+        setTimeout(() => {
+          handleApprove(id);
+        }, 2000);
+        return;
+      }
+      
+      setError(`Failed to confirm appointment: ${error.message || 'Unknown error'}`);
+      
+      // Reload list on error to sync with server
+      try {
+        await loadAppointments();
+      } catch (reloadErr) {
+        console.error('Failed to reload appointments:', reloadErr);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleReject = async (id) => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       await consultationsAPI.rejectConsultation(id, 'Declined by teacher');
+      
+      // Remove from local state immediately for UX
       setAppointments(appointments.filter(apt => apt._id !== id));
-      alert('Appointment rejected!');
+      
+      // Notify parent
+      if (onAppointmentAction) {
+        onAppointmentAction(id, 'reject');
+      }
+      
+      // Trigger parent refetch if callback provided
+      if (onRefetch) {
+        await onRefetch();
+      }
+      
+      // Show success feedback
+      const successMsg = document.createElement('div');
+      successMsg.className = 'toast-notification success';
+      successMsg.textContent = 'Appointment rejected!';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+      
     } catch (error) {
       console.error('Error rejecting appointment:', error);
-      alert('Error rejecting appointment: ' + error.message);
+      
+      // Check if we should auto-retry
+      if (error.shouldRetry) {
+        console.warn('Auto-retrying after error...');
+        setTimeout(() => {
+          handleReject(id);
+        }, 2000);
+        return;
+      }
+      
+      setError(`Failed to reject appointment: ${error.message || 'Unknown error'}`);
+      
+      // Reload list on error to sync with server
+      try {
+        await loadAppointments();
+      } catch (reloadErr) {
+        console.error('Failed to reload appointments:', reloadErr);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleComplete = async (id) => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       await consultationsAPI.completeConsultation(id);
+      
+      // Update local state
       setAppointments(appointments.map(apt => 
         apt._id === id ? { ...apt, status: 'completed' } : apt
       ));
-      alert('Appointment marked as completed!');
+      
+      // Notify parent
+      if (onAppointmentAction) {
+        onAppointmentAction(id, 'complete');
+      }
+      
+      // Trigger parent refetch if callback provided
+      if (onRefetch) {
+        await onRefetch();
+      }
+      
+      // Show success feedback
+      const successMsg = document.createElement('div');
+      successMsg.className = 'toast-notification success';
+      successMsg.textContent = 'Appointment marked as completed!';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+      
     } catch (error) {
       console.error('Error completing appointment:', error);
-      alert('Error completing appointment: ' + error.message);
+      
+      // Check if we should auto-retry
+      if (error.shouldRetry) {
+        console.warn('Auto-retrying after error...');
+        setTimeout(() => {
+          handleComplete(id);
+        }, 2000);
+        return;
+      }
+      
+      setError(`Failed to complete appointment: ${error.message || 'Unknown error'}`);
+      
+      // Reload list on error to sync with server
+      try {
+        await loadAppointments();
+      } catch (reloadErr) {
+        console.error('Failed to reload appointments:', reloadErr);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -110,6 +256,24 @@ const TeacherAppointments = ({ requests, onAppointmentAction, onViewAll }) => {
           </button>
         </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="error-banner">
+          <p>{error}</p>
+          <button onClick={() => loadAppointments()} className="retry-btn">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="loading-state">
+          <div className="spinner-small"></div>
+          <p>Updating appointments...</p>
+        </div>
+      )}
 
       {appointments.length === 0 ? (
         <div className="empty-appointments">

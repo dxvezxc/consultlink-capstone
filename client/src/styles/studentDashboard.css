@@ -860,7 +860,7 @@
   border: 1px solid #34d399;
 }
 
-.status-cancelled {
+.status-canceled {
   background: #fee2e2;
   color: #991b1b;
   border: 1px solid #f87171;
@@ -1785,7 +1785,7 @@
   border: 1px solid #7dd3fc;
 }
 
-.status-cancelled {
+.status-canceled {
   background: #fee2e2;
   color: #7f1d1d;
   border: 1px solid #fca5a5;
@@ -2395,6 +2395,133 @@
   .subject-name {
     font-size: 16px;
   }
+}
+
+/* ====== APPOINTMENT STATUS FILTER ====== */
+.status-header-container {
+  position: relative;
+}
+
+.status-header-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.status-header-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.status-header-btn:hover {
+  color: #3b82f6;
+}
+
+.status-filter-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+  z-index: 100;
+  min-width: 180px;
+  animation: slideDown 0.2s ease;
+  margin-top: 4px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: #475569;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.filter-option:first-child {
+  border-radius: 6px 6px 0 0;
+}
+
+.filter-option:last-child {
+  border-radius: 0 0 6px 6px;
+}
+
+.filter-option:hover {
+  background: #f0f9ff;
+  color: #3b82f6;
+  padding-left: 18px;
+}
+
+.filter-option.active {
+  background: #eff6ff;
+  color: #3b82f6;
+  font-weight: 600;
+  border-right: 3px solid #3b82f6;
+}
+
+.filter-option .count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0e7ff;
+  color: #3b82f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 28px;
+}
+
+.filter-option.active .count {
+  background: #3b82f6;
+  color: white;
+}
+
+.no-appointments-filtered {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  color: #64748b;
+}
+
+.no-appointments-filtered p {
+  font-size: 16px;
+  margin: 0;
 }
 
 /* ====== CHATBOX OVERLAY ====== */

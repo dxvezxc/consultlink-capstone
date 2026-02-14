@@ -37,21 +37,66 @@ app.use(helmet({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting (after CORS)
+// Rate limiting configuration - More intelligent handling
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // Increased from 100 to 500 requests per windowMs to avoid false positives
   message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
   trust: (req) => {
-    // Trust Render proxy headers
+    // Trust Render proxy headers (check x-forwarded-for)
     return true;
   },
   skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === '/api/health';
+    // Skip rate limiting for health checks and static files
+    if (req.path === '/api/health') return true;
+    if (req.method === 'OPTIONS') return true; // Skip CORS preflight
+    return false;
+  },
+  keyGenerator: (req, res) => {
+    // Use x-forwarded-for if available, otherwise use IP
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  },
+  // Custom handler for rate limit exceeded
+  handler: (req, res, options) => {
+    res.status(options.statusCode).json({
+      success: false,
+      status: 429,
+      error: 'Too many requests',
+      message: 'You have exceeded the rate limit. Please wait before making more requests.',
+      retryAfter: req.rateLimit?.resetTime,
+      timestamp: new Date().toISOString()
+    });
   },
 });
-app.use('/api/', limiter);
+
+// Separate, more liberal rate limiter for API routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500, // Higher limit for API routes
+  skip: (req) => {
+    // Skip for health checks and OPTIONS
+    if (req.path === '/api/health') return true;
+    if (req.method === 'OPTIONS') return true;
+    return false;
+  },
+  keyGenerator: (req, res) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  },
+});
+
+// Much stricter limiter for auth endpoints (prevent brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // 10 attempts per 15 minutes for auth
+  skipSuccessfulRequests: true, // Don't count successful requests
+  message: 'Too many login attempts, please try again later.',
+});
+
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // Logging (only in development)
 if (process.env.NODE_ENV === 'development') {

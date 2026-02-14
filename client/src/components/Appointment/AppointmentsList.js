@@ -149,6 +149,16 @@ const AppointmentsList = ({ appointments, onAppointmentAction, onViewDetails, us
                   </button>
                 )}
                 
+                {appointment.status === 'confirmed' && (
+                  <button 
+                    className="action-btn message-btn"
+                    onClick={(e) => handleAction(e, appointment._id, 'message')}
+                  >
+                    <MessageSquare size={16} />
+                    Message
+                  </button>
+                )}
+                
                 <button 
                   className="action-btn details-btn"
                   onClick={(e) => {

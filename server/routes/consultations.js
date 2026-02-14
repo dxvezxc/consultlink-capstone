@@ -292,20 +292,41 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Confirm appointment (teacher)
+// Confirm appointment (teacher) - with better error handling and race condition prevention
 router.put('/:id/confirm', async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
 
+    // Use findByIdAndUpdate for atomic operation to prevent race conditions
     const appointment = await Appointment.findById(id);
+    
     if (!appointment) {
-      return res.status(404).json({ success: false, error: 'Appointment not found' });
+      return res.status(404).json({ 
+        success: false, 
+        status: 404,
+        error: 'Appointment not found',
+        shouldRetry: false 
+      });
     }
 
     // Only teacher can confirm
     if (appointment.teacher.toString() !== userId.toString()) {
-      return res.status(403).json({ success: false, error: 'Not authorized to confirm this appointment' });
+      return res.status(403).json({ 
+        success: false, 
+        status: 403,
+        error: 'Not authorized to confirm this appointment',
+        shouldRetry: false 
+      });
+    }
+
+    // Check if already confirmed or completed to prevent double-confirm
+    if (appointment.status === 'confirmed' || appointment.status === 'completed') {
+      return res.status(200).json({
+        success: true,
+        consultation: appointment,
+        message: 'Appointment already confirmed or completed'
+      });
     }
 
     // Fetch availability slot to get duration
@@ -315,24 +336,42 @@ router.put('/:id/confirm', async (req, res) => {
       dayOfWeek: appointment.dateTime.getDay()
     });
 
-    appointment.status = 'confirmed';
-    appointment.confirmedAt = new Date();
-    if (availability) {
-      appointment.slotDuration = availability.slotDuration;
-    }
+    // Use atomic update to prevent race conditions
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      id,
+      {
+        status: 'confirmed',
+        confirmedAt: new Date(),
+        slotDuration: availability?.slotDuration || null
+      },
+      { new: true }
+    ).populate('student', 'name email studentID')
+     .populate('teacher', 'name email')
+     .populate('subject', 'name');
 
-    await appointment.save();
-    await appointment.populate('student', 'name email studentID');
-    await appointment.populate('teacher', 'name email');
+    console.log('Appointment confirmed:', updatedAppointment._id);
 
     res.status(200).json({
       success: true,
-      consultation: appointment,
-      message: 'Appointment confirmed'
+      consultation: updatedAppointment,
+      message: 'Appointment confirmed',
+      status: 200
     });
   } catch (err) {
     console.error('Confirm appointment error:', err.message);
-    res.status(500).json({ success: false, error: 'Error confirming appointment', message: err.message });
+    
+    // Determine if error is retryable
+    const shouldRetry = err.code === 11000 || // Duplicate key
+                       err.name === 'MongoNetworkError' ||
+                       err.code === 'ECONNREFUSED';
+    
+    res.status(500).json({ 
+      success: false, 
+      status: 500,
+      error: 'Error confirming appointment', 
+      message: err.message,
+      shouldRetry: shouldRetry 
+    });
   }
 });
 
@@ -344,34 +383,71 @@ router.put('/:id/complete', async (req, res) => {
 
     const appointment = await Appointment.findById(id);
     if (!appointment) {
-      return res.status(404).json({ success: false, error: 'Appointment not found' });
+      return res.status(404).json({ 
+        success: false, 
+        status: 404,
+        error: 'Appointment not found',
+        shouldRetry: false 
+      });
     }
 
     // Only teacher can mark as complete
     if (appointment.teacher.toString() !== userId.toString()) {
-      return res.status(403).json({ success: false, error: 'Not authorized to complete this appointment' });
+      return res.status(403).json({ 
+        success: false, 
+        status: 403,
+        error: 'Not authorized to complete this appointment',
+        shouldRetry: false 
+      });
     }
 
-    appointment.status = 'completed';
-    appointment.completedAt = new Date();
+    // Check if already completed
+    if (appointment.status === 'completed') {
+      return res.status(200).json({
+        success: true,
+        consultation: appointment,
+        message: 'Appointment already completed'
+      });
+    }
 
-    await appointment.save();
-    await appointment.populate('student', 'name email studentID');
-    await appointment.populate('teacher', 'name email');
-    await appointment.populate('subject', 'name');
+    // Use atomic update
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      id,
+      {
+        status: 'completed',
+        completedAt: new Date()
+      },
+      { new: true }
+    ).populate('student', 'name email studentID')
+     .populate('teacher', 'name email')
+     .populate('subject', 'name');
+
+    console.log('Appointment completed:', updatedAppointment._id);
 
     res.status(200).json({
       success: true,
-      consultation: appointment,
-      message: 'Appointment completed'
+      consultation: updatedAppointment,
+      message: 'Appointment completed',
+      status: 200
     });
   } catch (err) {
     console.error('Complete appointment error:', err.message);
-    res.status(500).json({ success: false, error: 'Error completing appointment', message: err.message });
+    
+    const shouldRetry = err.code === 11000 || 
+                       err.name === 'MongoNetworkError' ||
+                       err.code === 'ECONNREFUSED';
+    
+    res.status(500).json({ 
+      success: false, 
+      status: 500,
+      error: 'Error completing appointment', 
+      message: err.message,
+      shouldRetry: shouldRetry 
+    });
   }
 });
 
-// Cancel appointment (teacher/student)
+// Cancel/Reject appointment (teacher/student) - with better error handling
 router.put('/:id/cancel', async (req, res) => {
   try {
     const { id } = req.params;
@@ -380,29 +456,68 @@ router.put('/:id/cancel', async (req, res) => {
 
     const appointment = await Appointment.findById(id);
     if (!appointment) {
-      return res.status(404).json({ success: false, error: 'Appointment not found' });
+      return res.status(404).json({ 
+        success: false, 
+        status: 404,
+        error: 'Appointment not found',
+        shouldRetry: false 
+      });
     }
 
     // Only teacher or student can cancel
     if (appointment.teacher.toString() !== userId.toString() && appointment.student.toString() !== userId.toString()) {
-      return res.status(403).json({ success: false, error: 'Not authorized to cancel this appointment' });
+      return res.status(403).json({ 
+        success: false, 
+        status: 403,
+        error: 'Not authorized to cancel this appointment',
+        shouldRetry: false 
+      });
     }
 
-    appointment.status = 'canceled';
-    appointment.cancelReason = reason || '';
-    appointment.canceledAt = new Date();
+    // Check if already canceled
+    if (appointment.status === 'canceled') {
+      return res.status(200).json({
+        success: true,
+        consultation: appointment,
+        message: 'Appointment already canceled'
+      });
+    }
 
-    await appointment.save();
-    await appointment.populate('student', 'name email studentID');
+    // Use atomic update to prevent race conditions
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      id,
+      {
+        status: 'canceled',
+        cancelReason: reason || '',
+        canceledAt: new Date()
+      },
+      { new: true }
+    ).populate('student', 'name email studentID')
+     .populate('teacher', 'name email')
+     .populate('subject', 'name');
+
+    console.log('Appointment canceled:', updatedAppointment._id);
 
     res.status(200).json({
       success: true,
-      consultation: appointment,
-      message: 'Appointment canceled'
+      consultation: updatedAppointment,
+      message: 'Appointment canceled',
+      status: 200
     });
   } catch (err) {
     console.error('Cancel appointment error:', err.message);
-    res.status(500).json({ success: false, error: 'Error canceling appointment', message: err.message });
+    
+    const shouldRetry = err.code === 11000 || 
+                       err.name === 'MongoNetworkError' ||
+                       err.code === 'ECONNREFUSED';
+    
+    res.status(500).json({ 
+      success: false, 
+      status: 500,
+      error: 'Error canceling appointment', 
+      message: err.message,
+      shouldRetry: shouldRetry 
+    });
   }
 });
 

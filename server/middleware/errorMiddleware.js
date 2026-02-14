@@ -7,6 +7,7 @@ const errorHandler = (err, req, res, next) => {
     name: err.name,
     path: req.path,
     method: req.method,
+    statusCode: err.statusCode,
   });
 
   // Prevent headers already sent error
@@ -16,6 +17,7 @@ const errorHandler = (err, req, res, next) => {
 
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
+  let shouldRetry = false;
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
@@ -50,24 +52,61 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // MongoDB connection error
-  if (err.name === 'MongoServerError') {
+  if (err.name === 'MongoServerError' || err.name === 'MongoNetworkError') {
     statusCode = 503;
     message = 'Database connection error. Please try again later.';
+    shouldRetry = true;
   }
 
   // Timeout errors
   if (err.name === 'TimeoutError' || err.code === 'ECONNABORTED') {
     statusCode = 503;
     message = 'Request timeout. Please try again later.';
+    shouldRetry = true;
   }
 
+  // Rate limiting error (from express-rate-limit)
+  if (err.status === 429 || statusCode === 429) {
+    statusCode = 429;
+    message = 'Too many requests. Please wait before making more requests.';
+    shouldRetry = true;
+    
+    // Return specific rate limit info
+    return res.status(429).json({
+      success: false,
+      status: 429,
+      error: 'rate_limited',
+      message: message,
+      retryAfter: 60, // Suggest retry after 60 seconds
+      timestamp,
+      shouldRetry: true
+    });
+  }
+
+  // Handle operational errors (known errors)
+  const isOperationalError = err.isOperational === true;
+
   // Default error response
-  res.status(statusCode).json({
+  const response = {
     success: false,
+    status: statusCode,
     error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
     timestamp,
-  });
+    shouldRetry: shouldRetry || (statusCode >= 500 && statusCode < 600)
+  };
+
+  // Add debug info in development
+  if (process.env.NODE_ENV === 'development') {
+    response.stack = err.stack;
+    response.details = err;
+  }
+
+  // Add retry suggestion for specific errors
+  if (shouldRetry) {
+    response.retryAfter = 1000; // Suggest retry after 1 second
+  }
+
+  res.status(statusCode).json(response);
 };
 
 module.exports = errorHandler;

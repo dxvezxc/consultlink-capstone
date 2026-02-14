@@ -7,8 +7,8 @@ const adminAPI = {
   // Get dashboard statistics
   getDashboardStats: async () => {
     try {
-      const response = await axiosInstance.get('/api/admin/stats');
-      return response.data;
+      const response = await axiosInstance.get('/admin/stats');
+      return response;  // axios interceptor already unwraps response.data
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       throw error;
@@ -23,8 +23,8 @@ const adminAPI = {
       if (filters.isActive !== undefined) params.append('isActive', filters.isActive);
       if (filters.search) params.append('search', filters.search);
 
-      const response = await axiosInstance.get(`/api/admin/users?${params}`);
-      return response.data;
+      const response = await axiosInstance.get(`/admin/users?${params}`);
+      return response;  // axios interceptor already unwraps response.data
     } catch (error) {
       console.error('Error fetching users:', error);
       throw error;
@@ -34,7 +34,7 @@ const adminAPI = {
   // Create user
   createUser: async (userData) => {
     try {
-      const response = await axiosInstance.post('/api/admin/users', userData);
+      const response = await axiosInstance.post('/admin/users', userData);
       return response.data;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -45,7 +45,7 @@ const adminAPI = {
   // Update user
   updateUser: async (userId, userData) => {
     try {
-      const response = await axiosInstance.put(`/api/admin/users/${userId}`, userData);
+      const response = await axiosInstance.put(`/admin/users/${userId}`, userData);
       return response.data;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -56,7 +56,7 @@ const adminAPI = {
   // Delete user
   deleteUser: async (userId) => {
     try {
-      const response = await axiosInstance.delete(`/api/admin/users/${userId}`);
+      const response = await axiosInstance.delete(`/admin/users/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -116,7 +116,7 @@ const adminAPI = {
       if (filters.teacherId) params.append('teacherId', filters.teacherId);
       if (filters.studentId) params.append('studentId', filters.studentId);
 
-      const response = await axiosInstance.get(`/api/admin/consultations?${params}`);
+      const response = await axiosInstance.get(`/admin/consultations?${params}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching consultations:', error);
@@ -127,7 +127,7 @@ const adminAPI = {
   // Get activity report
   getActivityReport: async (startDate, endDate) => {
     try {
-      const response = await axiosInstance.get('/api/admin/reports/activity', {
+      const response = await axiosInstance.get('/admin/reports/activity', {
         params: { startDate, endDate }
       });
       return response.data;
@@ -140,7 +140,7 @@ const adminAPI = {
   // Send broadcast notification
   sendBroadcastNotification: async (notificationData) => {
     try {
-      const response = await axiosInstance.post('/api/admin/notifications/broadcast', notificationData);
+      const response = await axiosInstance.post('/admin/notifications/broadcast', notificationData);
       return response.data;
     } catch (error) {
       console.error('Error sending broadcast notification:', error);
@@ -151,7 +151,7 @@ const adminAPI = {
   // Get top teachers
   getTopTeachers: async () => {
     try {
-      const response = await axiosInstance.get('/api/admin/reports/top-teachers');
+      const response = await axiosInstance.get('/admin/reports/top-teachers');
       return response.data;
     } catch (error) {
       console.error('Error fetching top teachers:', error);
@@ -162,7 +162,7 @@ const adminAPI = {
   // Get system metrics
   getSystemMetrics: async () => {
     try {
-      const response = await axiosInstance.get('/api/admin/metrics');
+      const response = await axiosInstance.get('/admin/metrics');
       return response.data;
     } catch (error) {
       console.error('Error fetching system metrics:', error);
